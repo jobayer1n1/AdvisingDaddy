@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "NSU Advising Automator",
+  "version": "1.0",
+  "description": "Automated course selection based on priority.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://rds3.northsouth.edu/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://rds3.northsouth.edu/students/advising*","file:///C:/Users/jobay/Downloads/Advising.html"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
