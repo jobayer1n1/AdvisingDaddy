@@ -98,7 +98,7 @@ async function runAutomation() {
 
     if (priorities.length === 0) return; // Nothing to do
 
-    const registeredSet = getRegisteredCourses();
+    const registeredSet = new Set(getRegisteredCourses());
     const availableMap = getAvailableCourseMap();
     const completedCourses = []; // To update UI
 
@@ -107,24 +107,21 @@ async function runAutomation() {
         const courseName = item.name.toUpperCase();
         let courseAdded = false;
 
-        // 2a. Check if the SPECIFIC section of this course is already registered
-        // Logic: Only skip if the exact Course + Section combination exists.
-        let alreadyRegisteredExact = false;
+        // 2a. If ANY section of this course is already registered → skip course
+        let skipCourse = false;
 
-        // We assume 'section' is the current section object being iterated from your priority list
-        const currentFullCode = `${courseName}.${section.number}`; 
-
-        for (const reg of registeredSet) {
-            if (reg === currentFullCode) {
-                alreadyRegisteredExact = true;
+        for (const section of item.sections) {
+            const fullCode = `${courseName}.${section}`;
+            if (registeredSet.has(fullCode)) {
+                console.log(`${fullCode} already in advSlip. Skipping ${courseName}.`);
+                skipCourse = true;
                 break;
             }
         }
 
-        if (alreadyRegisteredExact) {
-            // If this specific section is already there, we don't need to add it again
-            console.log(`${currentFullCode} is already registered. Skipping.`);
-            continue; 
+        if (skipCourse) {
+            completedCourses.push(courseName);
+            continue;
         }
 
         // 2b. Iterate Sections in Order
