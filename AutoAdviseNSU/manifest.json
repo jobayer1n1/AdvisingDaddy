@@ -20,7 +20,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://rds3.northsouth.edu/students/advising*","file:///C:/Users/jobay/Downloads/Advising.html"],
+      "matches": ["https://rds3.northsouth.edu/students/advising*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
