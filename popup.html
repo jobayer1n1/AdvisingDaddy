@@ -1,13 +1,22 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Advising Manager</title>
     <link rel="stylesheet" type="text/css" href="popup.css">
 </head>
+
 <body>
     <div class="container">
         <h2>Advising Manager</h2>
-        
+        <div class="master-control">
+            <label class="switch">
+                <input type="checkbox" id="masterToggle">
+                <span class="slider"></span>
+            </label>
+            <strong id="statusLabel">Automation Disabled</strong>
+        </div>
+        <hr>
         <div class="input-group">
             <input type="text" id="courseInput" placeholder="Course (e.g., BIO103)">
             <input type="text" id="sectionInput" placeholder="Sections (e.g., 1,2,3)">
@@ -25,4 +34,5 @@
     </div>
     <script src="popup.js"></script>
 </body>
+
 </html>

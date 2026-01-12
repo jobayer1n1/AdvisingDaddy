@@ -4,7 +4,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addBtn = document.getElementById('addBtn');
     const priorityList = document.getElementById('priorityList');
     const clearBtn = document.getElementById('clearStorage');
+    const masterToggle = document.getElementById('masterToggle');
+    const statusLabel = document.getElementById('statusLabel');
 
+    // Function to update the label text
+    function updateLabel(isEnabled) {
+        statusLabel.innerText = isEnabled ? "Automation Enabled" : "Automation Disabled";
+        statusLabel.style.color = isEnabled ? "#28a745" : "#dc3545"; // Optional: Green for on, Red for off
+    }
+
+    // 1. Load saved state and set initial label
+    chrome.storage.local.get(['automationEnabled'], (res) => {
+        const isEnabled = res.automationEnabled || false;
+        masterToggle.checked = isEnabled;
+        updateLabel(isEnabled);
+    });
+
+    // 2. Listen for changes to update label and storage
+    masterToggle.addEventListener('change', () => {
+        const isEnabled = masterToggle.checked;
+        chrome.storage.local.set({ automationEnabled: isEnabled });
+        updateLabel(isEnabled);
+    });
     // Load data on start
     renderList();
 

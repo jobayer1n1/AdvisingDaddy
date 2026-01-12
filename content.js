@@ -92,7 +92,14 @@ function getAvailableCourseMap() {
 // --- Main Automation Logic ---
 
 async function runAutomation() {
-    // 1. Get Preferences from Storage
+    const settings = await chrome.storage.local.get("automationEnabled");
+    if (!settings.automationEnabled) {
+        console.log("Automation is currently DISABLED via Manager.");
+        return; // Stop here
+    }
+
+    console.log("Automation is ENABLED. Starting selection...");
+
     const data = await chrome.storage.local.get("advisingPriorities");
     const priorities = data.advisingPriorities || []; // Format: [{name: "BIO103", sections: ["1","2"]}]
 
