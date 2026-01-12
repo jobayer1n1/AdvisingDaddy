@@ -1,5 +1,3 @@
-Here is the comprehensive documentation for your Chrome Extension project.
-
 ---
 
 # 🎓 NSU Advising Automator - Documentation
