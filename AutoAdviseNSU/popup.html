@@ -6,7 +6,7 @@
     <link rel="stylesheet" type="text/css" href="popup.css">
 </head>
 
-<body>
+<body class="dark">
     <div class="container">
         <h2>Advising Manager</h2>
         <div class="master-control">
@@ -16,11 +16,18 @@
             </label>
             <strong id="statusLabel">Automation Disabled</strong>
         </div>
+        <!-- <div class="master-control">
+            <span>Dark Mode</span>
+            <label class="switch">
+                <input type="checkbox" id="darkToggle">
+                <span class="slider"></span>
+            </label>
+        </div> -->
         <hr>
         <div class="input-group">
             <input type="text" id="courseInput" placeholder="Course (e.g., BIO103)">
             <input type="text" id="sectionInput" placeholder="Sections (e.g., 1,2,3)">
-            <button id="addBtn">Add Course</button>
+            <button id="addBtn" style="color: #91C6BC;">Add Course</button>
         </div>
 
         <hr>
@@ -30,7 +37,7 @@
             <div class="empty-state">None</div>
         </div>
 
-        <button id="clearStorage" class="danger-btn">Clear Whole Queue</button>
+        <button id="clearStorage" class="danger-btn" >Clear Whole Queue</button>
     </div>
     <script src="popup.js"></script>
 </body>

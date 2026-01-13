@@ -1,15 +1,29 @@
+/* =========================
+   GLOBAL VARIABLES
+========================= */
+:root {
+    --glow-blue: #91C6BC;
+    --glow-blue-soft: #91C6BC;
+    --glow-red: rgba(220, 53, 69, 0.9);
+}
+
+
+/* =========================
+   BASE (LIGHT MODE)
+========================= */
 body {
     width: 300px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     padding: 10px;
     background-color: #f9f9f9;
+    color: #333;
+    transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h2, h3 {
     margin-top: 0;
     color: #333;
 }
-
 .input-group {
     display: flex;
     flex-direction: column;
@@ -20,24 +34,34 @@ input {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
 }
 
 button {
     padding: 8px;
-    background-color: #007bff;
-    color: white;
+    background-color: transparent;
+    color: #333;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
+    transition:
+        background-color 0.25s ease,
+        color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.15s ease;
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: rgba(0, 0, 0, 0.05);
 }
 
+/* =========================
+   DANGER BUTTON
+========================= */
 .danger-btn {
     background-color: #dc3545;
+    color: #fff;
     margin-top: 15px;
     width: 100%;
 }
@@ -46,6 +70,9 @@ button:hover {
     background-color: #a71d2a;
 }
 
+/* =========================
+   COURSE LIST
+========================= */
 #priorityList {
     max-height: 250px;
     overflow-y: auto;
@@ -71,11 +98,15 @@ button:hover {
     font-size: 0.9em;
 }
 
+/* =========================
+   REMOVE BUTTON (❌)
+========================= */
 .remove-btn {
     background: transparent;
-    color: #999;
+    color: #ff3b3b;
     padding: 2px 6px;
     font-size: 1.1em;
+    box-shadow: none !important;
 }
 
 .remove-btn:hover {
@@ -83,6 +114,9 @@ button:hover {
     color: #ff0000;
 }
 
+/* =========================
+   EMPTY STATE
+========================= */
 .empty-state {
     padding: 15px;
     text-align: center;
@@ -90,13 +124,9 @@ button:hover {
     font-style: italic;
 }
 
-.check {
-    margin-left: 5px;
-}
-.pending {
-    margin-left: 5px;
-    opacity: 0.5;
-}
+/* =========================
+   MASTER CONTROL
+========================= */
 .master-control {
     display: flex;
     align-items: center;
@@ -107,6 +137,9 @@ button:hover {
     margin-bottom: 10px;
 }
 
+/* =========================
+   SWITCH TOGGLE
+========================= */
 .switch {
     position: relative;
     display: inline-block;
@@ -114,26 +147,199 @@ button:hover {
     height: 22px;
 }
 
-.switch input { opacity: 0; width: 0; height: 0; }
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
 
 .slider {
     position: absolute;
     cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
+    inset: 0;
     background-color: #ccc;
-    transition: .4s;
+    transition: 0.4s;
     border-radius: 34px;
 }
 
 .slider:before {
     position: absolute;
     content: "";
-    height: 16px; width: 16px;
-    left: 3px; bottom: 3px;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
     background-color: white;
-    transition: .4s;
+    transition: 0.4s;
     border-radius: 50%;
 }
 
-input:checked + .slider { background-color: #28a745; }
-input:checked + .slider:before { transform: translateX(18px); }
+input:checked + .slider {
+    background-color: #91C6BC;
+    box-shadow: 0 0 8px var(--glow-blue);
+}
+
+input:checked + .slider:before {
+    transform: translateX(18px);
+}
+
+/* =========================
+   DARK MODE
+========================= */
+body.dark {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+body.dark h2,
+body.dark h3 {
+    color: #f1f1f1;
+}
+
+body.dark input {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border: 1px solid #333;
+}
+
+body.dark input::placeholder {
+    color: #888;
+}
+
+/* =========================
+   DARK MODE BUTTONS (BLUE)
+========================= */
+body.dark button {
+    background-color: #91C6BC;
+    color: #fff;
+    box-shadow: 0 0 8px var(--glow-blue-soft);
+}
+
+body.dark button:hover {
+    box-shadow:
+        0 0 10px var(--glow-blue),
+        0 0 20px #91C6BC;
+    transform: translateY(-1px);
+}
+
+body.dark button:active {
+    box-shadow: 0 0 6px var(--glow-blue-soft);
+    transform: translateY(0);
+}
+body.dark input:checked + .slider:before {
+    background-color: #000;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+body.dark .remove-btn:hover {
+    text-shadow:
+        0 0 4px rgba(255, 80, 80, 1),
+        0 0 10px rgba(255, 80, 80, 0.8);
+}
+
+
+/* OUTLINE BUTTON BASE (dark mode) */
+body.dark #addBtn,
+body.dark .danger-btn {
+    background-color: transparent !important;
+}
+body.dark #addBtn {
+    border: 1px solid #82b3aa;
+    color: #9dbbff;
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+body.dark .danger-btn {
+    border: 1px solid rgba(220, 53, 69, 0.8);
+    color: #ff9b9b;
+}
+
+body.dark #addBtn:hover {
+    box-shadow:
+        0 0 8px #91C6BC,
+        0 0 18px #91C6BC;
+    transform: translateY(-1px);
+}
+
+body.dark .danger-btn:hover {
+    box-shadow:
+        0 0 8px rgba(220, 53, 69, 0.9),
+        0 0 18px rgba(220, 53, 69, 0.6);
+    transform: translateY(-1px);
+}
+body.dark #addBtn:active,
+body.dark .danger-btn:active {
+    box-shadow: 0 0 4px rgba(255, 255, 255, 0.2);
+    transform: translateY(0);
+}
+
+
+/* =========================
+   DARK MODE DANGER BUTTON
+========================= */
+body.dark .danger-btn {
+    background-color: #dc3545;
+    box-shadow: 0 0 8px var(--glow-red);
+}
+
+body.dark .danger-btn:hover {
+    box-shadow:
+        0 0 12px var(--glow-red),
+        0 0 20px rgba(220, 53, 69, 0.6);
+}
+
+/* =========================
+   DARK MODE REMOVE BUTTON (❌)
+========================= */
+body.dark .remove-btn {
+    background-color: transparent !important;
+    color: #ff5c5c !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+body.dark .remove-btn:hover {
+    background-color: transparent;
+    color: #ff2d2d;
+    transform: scale(1.1);
+    text-shadow:
+        0 0 4px rgba(255, 80, 80, 1),
+        0 0 10px rgba(255, 80, 80, 0.8);
+}
+
+/* =========================
+   DARK MODE LIST
+========================= */
+body.dark #priorityList {
+    background-color: #1a1a1a;
+    border-color: #333;
+}
+
+body.dark .course-row {
+    border-bottom: 1px solid #2a2a2a;
+}
+
+body.dark .sections {
+    color: #aaa;
+}
+
+body.dark .empty-state {
+    color: #777;
+}
+
+body.dark .master-control {
+    background: #1b2633;
+}
+
+body.dark .slider {
+    background-color: #555;
+}
+
+/* =========================
+   REDUCED MOTION
+========================= */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}
