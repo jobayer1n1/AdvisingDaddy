@@ -7,25 +7,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const masterToggle = document.getElementById('masterToggle');
     const statusLabel = document.getElementById('statusLabel');
     const autoReloadToggle = document.getElementById('autoReloadToggle'); // Ensure this ID exists in HTML
-    // const darkToggle = document.getElementById("darkToggle");
-
-    // // Load saved theme
-    // chrome.storage.local.get("darkMode", (data) => {
-    //     if (data.darkMode) {
-    //         document.body.classList.add("dark");
-    //         darkToggle.checked = true;
-    //     }
-    // });
-
-    // // Toggle theme
-    // darkToggle.addEventListener("change", () => {
-    //     const isDark = darkToggle.checked;
-
-    //     document.body.classList.toggle("dark", isDark);
-
-    //     chrome.storage.local.set({ darkMode: isDark });
-    // });
-
 
     // --- Toggle Logic ---
 
