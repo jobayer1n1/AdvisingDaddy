@@ -169,7 +169,7 @@ button:hover {
     width: 16px;
     left: 3px;
     bottom: 3px;
-    background-color: white;
+    background-color: black;
     transition: 0.4s;
     border-radius: 50%;
 }
