@@ -6,30 +6,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     const clearBtn = document.getElementById('clearStorage');
     const masterToggle = document.getElementById('masterToggle');
     const statusLabel = document.getElementById('statusLabel');
+    const autoReloadToggle = document.getElementById('autoReloadToggle'); // Ensure this ID exists in HTML
 
-    // Function to update the label text
+    // --- Toggle Logic ---
+
     function updateLabel(isEnabled) {
         statusLabel.innerText = isEnabled ? "Automation Enabled" : "Automation Disabled";
-        statusLabel.style.color = isEnabled ? "#28a745" : "#dc3545"; // Optional: Green for on, Red for off
+        statusLabel.style.color = isEnabled ? "#28a745" : "#dc3545";
     }
 
-    // 1. Load saved state and set initial label
-    chrome.storage.local.get(['automationEnabled'], (res) => {
-        const isEnabled = res.automationEnabled || false;
-        masterToggle.checked = isEnabled;
-        updateLabel(isEnabled);
+    // Load Toggle States
+    chrome.storage.local.get(['automationEnabled', 'autoReloadEnabled'], (res) => {
+        masterToggle.checked = res.automationEnabled || false;
+        if (autoReloadToggle) autoReloadToggle.checked = res.autoReloadEnabled || false;
+        updateLabel(masterToggle.checked);
     });
 
-    // 2. Listen for changes to update label and storage
     masterToggle.addEventListener('change', () => {
         const isEnabled = masterToggle.checked;
         chrome.storage.local.set({ automationEnabled: isEnabled });
         updateLabel(isEnabled);
     });
-    // Load data on start
+
+    if (autoReloadToggle) {
+        autoReloadToggle.addEventListener('change', () => {
+            chrome.storage.local.set({ autoReloadEnabled: autoReloadToggle.checked });
+        });
+    }
+
+    // --- Course List Logic ---
+
     renderList();
 
-    // Add Preference Handler
     addBtn.addEventListener('click', async () => {
         const course = courseInput.value.trim().toUpperCase();
         const sectionStr = sectionInput.value.trim();
@@ -39,34 +47,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Parse sections: split by comma, trim spaces
         const sections = sectionStr.split(',').map(s => s.trim()).filter(s => s !== "");
-
         const newEntry = { name: course, sections: sections };
 
-        // Save to storage
         const data = await chrome.storage.local.get("advisingPriorities");
         const currentList = data.advisingPriorities || [];
         
-        // Remove existing entry for same course if exists (update)
+        // Update existing or add new
         const filteredList = currentList.filter(item => item.name !== course);
         filteredList.push(newEntry);
 
         await chrome.storage.local.set({ advisingPriorities: filteredList });
         
-        // Clear inputs and redraw
         courseInput.value = '';
         sectionInput.value = '';
         renderList();
     });
 
-    // Clear All Data
+    // Smart Clear: Clears only the courses, keeps your toggles/settings
     clearBtn.addEventListener('click', async () => {
-        await chrome.storage.local.clear();
-        renderList();
+        if (confirm("Are you sure you want to clear your course list?")) {
+            await chrome.storage.local.set({ advisingPriorities: [], completedCourses: [] });
+            renderList();
+        }
     });
 
-    // Render Logic
     async function renderList() {
         const data = await chrome.storage.local.get(["advisingPriorities", "completedCourses"]);
         const list = data.advisingPriorities || [];
@@ -79,15 +84,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        list.forEach((item, index) => {
+        list.forEach((item) => {
             const row = document.createElement('div');
             row.className = 'course-row';
 
-            // Check if course is successfully added (based on content script feedback)
-            // Replace the icon lines in your renderList function with these:
             const isDone = completed.includes(item.name);
-
-            // Using HTML Entities (&#9989; is Checkmark, &#9203; is Hourglass)
             const statusIcon = isDone ? '<span class="check">&#9989;</span>' : '<span class="pending">&#9203;</span>';
 
             row.innerHTML = `
@@ -101,14 +102,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             priorityList.appendChild(row);
         });
 
-        // Add delete listeners
+        // Delete listeners
         document.querySelectorAll('.remove-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const nameToRemove = e.target.getAttribute('data-name');
                 const newData = await chrome.storage.local.get("advisingPriorities");
                 const current = newData.advisingPriorities || [];
                 const updated = current.filter(i => i.name !== nameToRemove);
-                await chrome.storage.local.set({ advisingPriorities: updated });
+                
+                // Also remove from completed if it was there
+                const completedData = await chrome.storage.local.get("completedCourses");
+                const updatedCompleted = (completedData.completedCourses || []).filter(n => n !== nameToRemove);
+
+                await chrome.storage.local.set({ 
+                    advisingPriorities: updated, 
+                    completedCourses: updatedCompleted 
+                });
                 renderList();
             });
         });
