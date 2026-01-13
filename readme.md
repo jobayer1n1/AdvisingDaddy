@@ -1,7 +1,3 @@
-Here is the comprehensive documentation for your Chrome Extension project.
-
----
-
 # 🎓 NSU Advising Automator - Documentation
 
 A Chrome Extension built to automate course selection on the North South University advising portal. It intelligently monitors seat availability, handles section priorities, and automates the submission process based on user-defined preferences.
