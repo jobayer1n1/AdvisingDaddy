@@ -6,7 +6,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const clearBtn = document.getElementById('clearStorage');
     const masterToggle = document.getElementById('masterToggle');
     const statusLabel = document.getElementById('statusLabel');
-    const autoReloadToggle = document.getElementById('autoReloadToggle'); // Ensure this ID exists in HTML
+    const alertStatusToggle = document.getElementById("alertStatusToggle");
+    const alertStatusText = document.getElementById("alertStatusText");
 
     // --- Toggle Logic ---
 
@@ -14,13 +15,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         statusLabel.innerText = isEnabled ? "Automation Enabled" : "Automation Disabled";
         statusLabel.style.color = isEnabled ? "#28a745" : "#dc3545";
     }
+    function updateAlertStatusLabel(isEnabled) {
+        alertStatusText.innerText = isEnabled
+            ? "New Section Alert Enabled"
+            : "New Section Alert Disabled";
+
+        alertStatusText.style.color = isEnabled ? "#28a745" : "#ffffffff";
+    }
 
     // Load Toggle States
-    chrome.storage.local.get(['automationEnabled', 'autoReloadEnabled'], (res) => {
-        masterToggle.checked = res.automationEnabled || false;
-        if (autoReloadToggle) autoReloadToggle.checked = res.autoReloadEnabled || false;
-        updateLabel(masterToggle.checked);
-    });
+    chrome.storage.local.get(
+        ['automationEnabled', 'alertOnNewFaculty'],
+        (res) => {
+            masterToggle.checked = res.automationEnabled || false;
+            const alertEnabled = res.alertOnNewFaculty || false;
+            alertStatusToggle.checked = alertEnabled;
+            updateAlertStatusLabel(alertEnabled);
+            updateLabel(masterToggle.checked);
+        }
+    );
+
+
 
     masterToggle.addEventListener('change', () => {
         const isEnabled = masterToggle.checked;
@@ -28,11 +43,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateLabel(isEnabled);
     });
 
-    if (autoReloadToggle) {
-        autoReloadToggle.addEventListener('change', () => {
-            chrome.storage.local.set({ autoReloadEnabled: autoReloadToggle.checked });
+    if (alertStatusToggle) {
+        alertStatusToggle.addEventListener('change', () => {
+            const isEnabled = alertStatusToggle.checked;
+
+            chrome.storage.local.set({
+                alertOnNewFaculty: isEnabled
+            });
+
+            updateAlertStatusLabel(isEnabled);
         });
     }
+
 
     // --- Course List Logic ---
 

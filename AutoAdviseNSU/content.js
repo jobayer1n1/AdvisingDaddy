@@ -89,15 +89,83 @@ function getAvailableCourseMap() {
     return map;
 }
 
+/**
+ * Counts how many sections are currently available per course
+ * Returns: { BIO103: 3, CSE311: 2 }
+ */
+function getCurrentSectionCounts() {
+    const counts = {};
+    const table = document.getElementById(COURSE_TABLE_ID);
+    if (!table) return counts;
+
+    const rows = table.querySelectorAll("tr");
+
+    rows.forEach(row => {
+        const tds = row.querySelectorAll("td");
+        if (tds.length < 2) return;
+
+        const text = tds[0].innerText.trim(); // e.g. BIO103.1
+        const idx = text.lastIndexOf(".");
+        if (idx === -1) return;
+
+        const course = text.substring(0, idx).toUpperCase();
+        counts[course] = (counts[course] || 0) + 1;
+    });
+
+    return counts;
+}
+
+
 // --- Main Automation Logic ---
 
 async function runAutomation() {
-    const settings = await chrome.storage.local.get("automationEnabled");
-    if (!settings.automationEnabled) {
-        console.log("Automation is currently DISABLED via Manager.");
-        return; // Stop here
+    const {
+        automationEnabled,
+        alertOnNewFaculty,
+        courseSectionCounts = {}
+    } = await chrome.storage.local.get([
+        "automationEnabled",
+        "alertOnNewFaculty",
+        "courseSectionCounts"
+    ]);
+
+    if (!automationEnabled) {
+        console.log("Automation is DISABLED.");
+        return;
     }
 
+    const currentCounts = getCurrentSectionCounts();
+    let updatedCounts = { ...courseSectionCounts };
+
+    // 🔔 NEW FACULTY ALERT LOGIC
+    if (alertOnNewFaculty) {
+        for (const course in currentCounts) {
+            // Initialize if missing
+            if (!(course in courseSectionCounts)) {
+                updatedCounts[course] = currentCounts[course];
+                continue;
+            }
+
+            // Detect increase
+            if (currentCounts[course] > courseSectionCounts[course]) {
+                alert(`New section available for ${course}`);
+                console.warn(`New section detected for ${course}. Automation stopped.`);
+
+                // Update stored count before stopping
+                updatedCounts[course] = currentCounts[course];
+                await chrome.storage.local.set({
+                    courseSectionCounts: updatedCounts
+                });
+
+                return; // ⛔ STOP AUTOMATION COMPLETELY
+            }
+        }
+
+        // Save initialized / unchanged counts
+        await chrome.storage.local.set({
+            courseSectionCounts: updatedCounts
+        });
+    }
     console.log("Automation is ENABLED. Starting selection...");
 
     const data = await chrome.storage.local.get("advisingPriorities");
