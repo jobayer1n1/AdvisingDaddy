@@ -197,6 +197,7 @@ async function runAutomation() {
             const target = availableMap[courseName]?.[section];
 
             if (!target) {
+                console.log(`${fullCode} not found`)
                 // Section not found in offer list, skip silently
                 continue;
             }
@@ -210,6 +211,7 @@ async function runAutomation() {
                 break; // Stop checking other sections for this course
             } else {
                 // Section full, proceed to next section in priority
+                console.log(`${fullCode} seat not available`)
             }
         }
 
