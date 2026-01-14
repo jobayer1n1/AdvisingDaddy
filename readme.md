@@ -18,7 +18,7 @@ A Chrome Extension built to automate course selection on the North South Univers
 
 ## 🛠️ Installation Guide
 
-1. **Prepare the Folder:** Ensure all files (`manifest.json`, `content.js`, `popup.html`, `popup.js`, `popup.css`) are in a single folder named `AdvisingAutomator`.
+1. **Download the zip file from releases and unzip it:** Ensure all files (`manifest.json`, `content.js`, `popup.html`, `popup.js`, `popup.css`) are in a single folder named `AutoAdvise`.
 2. **Open Extensions Menu:** Open Chrome and navigate to `chrome://extensions/`.
 3. **Developer Mode:** Toggle **Developer mode** to ON (top right corner).
 4. **Load Extension:** Click **Load unpacked** and select your folder.
