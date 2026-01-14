@@ -1,10 +1,10 @@
 # 🎓 NSU Advising Automator - Documentation
 
-A Chrome Extension built to automate course selection on the North South University advising portal. It intelligently monitors seat availability, handles section priorities, and automates the submission process based on user-defined preferences.
+A Chrome Extension built to automate course selection on the North South University advising portal. It intelligently monitors sections, seat availability, handles section priorities, and automates the submission process based on user-defined preferences.
 
 ---
 
-## 📂 Project Structure
+## 📂 Addon Structure
 
 | File | Description |
 | --- | --- |
@@ -37,7 +37,13 @@ A Chrome Extension built to automate course selection on the North South Univers
 
 
 
-### 2. Priority Handling
+### 2. New Section Alert
+
+* **Logic:** It stores each courses section count added by the user. If the section count increases, it raises a alert and skip furthur script execution. You have to reload to continue automation.
+
+
+
+### 3. Priority Handling
 
 * **Input Format:** Users input a Course Name (e.g., `BIO103`) and a list of Sections (e.g., `1, 2, 3`).
 * **Execution Order:** The script iterates through the course list from top to bottom.
@@ -51,7 +57,7 @@ A Chrome Extension built to automate course selection on the North South Univers
 
 
 
-### 3. Duplicate Prevention (Exact Match)
+### 4. Duplicate Prevention (Exact Match)
 
 To prevent the "Already Registered" error:
 
@@ -59,7 +65,7 @@ To prevent the "Already Registered" error:
 * **Comparison:** It compares the target `COURSE.SECTION` (e.g., `BIO103.8`) against the registered list.
 * **Rule:** It only skips the action if the **exact** section is found. If you have `BIO103.8` but want `BIO103.9`, it will still attempt to add `9` (unless you remove `8` manually or via script, though currently it only adds).
 
-### 4. Seat Availability Parsing
+### 5. Seat Availability Parsing
 
 * **DOM Target:** It looks for the second `<td>` in every row of `#courseList`.
 * **Text Format:** Strictly parses `occupied(total)` (e.g., `35(40)`).
@@ -71,7 +77,7 @@ occupied < total
 
 
 
-### 5. Finalization & Auto-Reload
+### 6. Finalization & Auto-Reload
 
 * **Submission:** If any course was successfully clicked/added during the cycle, the script clicks the `#submit` button.
 * **Reload Loop:** After submission (or if no seats were found), the script checks the `autoReloadEnabled` flag. If true, it refreshes the page to restart the cycle and catch newly opened seats.
@@ -84,6 +90,10 @@ occupied < total
 * Enables/Disables the entire script.
 * **Dynamic Label:** Text changes from "Automation Disabled" (Red) to "Automation Enabled" (Green) dynamically using DOM manipulation.
 
+
+2. **AlertStatusToggle:**
+* Enables/Disable alert for new sections.
+* **Dynamic Label:** same as Master Toggle
 
 2. **Course Input:**
 * Accepts case-insensitive input (e.g., `bio103` becomes `BIO103`).
