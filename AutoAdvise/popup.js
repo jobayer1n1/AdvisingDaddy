@@ -25,10 +25,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load Toggle States
     chrome.storage.local.get(
-        ['automationEnabled', 'alertOnNewFaculty'],
+        ['automationEnabled', 'alertOnNewSection'],
         (res) => {
             masterToggle.checked = res.automationEnabled || false;
-            const alertEnabled = res.alertOnNewFaculty || false;
+            const alertEnabled = res.alertOnNewSection || false;
             alertStatusToggle.checked = alertEnabled;
             updateAlertStatusLabel(alertEnabled);
             updateLabel(masterToggle.checked);
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isEnabled = alertStatusToggle.checked;
 
             chrome.storage.local.set({
-                alertOnNewFaculty: isEnabled
+                alertOnNewSection: isEnabled
             });
 
             updateAlertStatusLabel(isEnabled);

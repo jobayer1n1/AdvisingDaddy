@@ -121,11 +121,11 @@ function getCurrentSectionCounts() {
 async function runAutomation() {
     const {
         automationEnabled,
-        alertOnNewFaculty,
+        alertOnNewSection,
         courseSectionCounts = {}
     } = await chrome.storage.local.get([
         "automationEnabled",
-        "alertOnNewFaculty",
+        "alertOnNewSection",
         "courseSectionCounts"
     ]);
 
@@ -137,8 +137,8 @@ async function runAutomation() {
     const currentCounts = getCurrentSectionCounts();
     let updatedCounts = { ...courseSectionCounts };
 
-    // 🔔 NEW FACULTY ALERT LOGIC
-    if (alertOnNewFaculty) {
+    // 🔔 NEW SECTION ALERT LOGIC
+    if (alertOnNewSection) {
         for (const course in currentCounts) {
             // Initialize if missing
             if (!(course in courseSectionCounts)) {
@@ -177,30 +177,23 @@ async function runAutomation() {
     const availableMap = getAvailableCourseMap();
     const completedCourses = []; // To update UI
 
-    // 2. Iterate Priorities
+    // 1. Iterate Priorities
     for (const item of priorities) {
         const courseName = item.name.toUpperCase();
         let courseAdded = false;
 
-        // 2a. If ANY section of this course is already registered → skip course
-        let skipCourse = false;
-
+        // 2a. Iterate Sections in Order
         for (const section of item.sections) {
+
+            // 2b. If the target section is already in advSlip that means it's already added
             const fullCode = `${courseName}.${section}`;
             if (registeredSet.has(fullCode)) {
-                console.log(`${fullCode} already in advSlip. Skipping ${courseName}.`);
-                skipCourse = true;
+                console.log(`${fullCode} Found in advSlip. Skipping ${courseName}.`);
+                courseAdded = true;
                 break;
             }
-        }
 
-        if (skipCourse) {
-            completedCourses.push(courseName);
-            continue;
-        }
-
-        // 2b. Iterate Sections in Order
-        for (const section of item.sections) {
+            //Otherwise Check the offered course list tables 
             const target = availableMap[courseName]?.[section];
 
             if (!target) {
