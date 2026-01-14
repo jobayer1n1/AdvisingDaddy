@@ -95,12 +95,12 @@ occupied < total
 * Enables/Disable alert for new sections.
 * **Dynamic Label:** same as Master Toggle
 
-2. **Course Input:**
+3. **Course Input:**
 * Accepts case-insensitive input (e.g., `bio103` becomes `BIO103`).
 * Sanitizes section lists (removes extra spaces).
 
 
-3. **Status Indicators:**
+4. **Status Indicators:**
 * Uses HTML Entities (e.g., `&#9989;` for ✅) to ensure cross-platform compatibility and avoid UTF-8 encoding issues.
 * Shows a checkmark next to courses detected in the `#advSlip`.
 
