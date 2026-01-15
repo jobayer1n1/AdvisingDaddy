@@ -120,12 +120,3 @@ occupied < total
 * **Storage:** Uses `chrome.storage.local` to persist user preferences across browser restarts.
 
 ---
-
-## 🐛 Troubleshooting
-
-| Issue | Solution |
-| --- | --- |
-| **Console Empty** | Ensure you are inspecting the **Webpage** for automation logs and the **Popup** for UI logs. Enable "Preserve log" in DevTools. |
-| **Garbage Icons (âœ–)** | The code now uses HTML Entities (`&#10006;`) instead of raw emojis to fix encoding errors. |
-| **Not Clicking** | Check if "Master Switch" is Green. Ensure the course text in the table matches your input exactly (e.g., spacing). |
-| **"Could not load icon"** | Remove the `"icons"` section from `manifest.json` or ensure image files exist in the `/images` folder. |
