@@ -39,7 +39,7 @@ A Chrome Extension built to automate course selection on the North South Univers
 
 ### 2. New Section Alert
 
-* **Logic:** It stores each courses section count added by the user. If the section count increases, it raises a alert and skip furthur script execution. You have to reload to continue automation.
+* **Logic:** It counts and stores total sections of each queued course. If the amount increases in next iteration, it raises a alert and skip furthur script execution. You have to reload to continue automation.
 
 
 
