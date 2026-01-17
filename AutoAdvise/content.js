@@ -171,16 +171,16 @@ async function runAutomation() {
             }
         }
         if(new_section_available.length>0){
+            let output = "NEW SECTION AVAILABLE: "
             new_section_available.forEach(each_course => {
-                alert(`New section available for ${each_course}`);
-                console.log(`New section detected for ${each_course}.`);
+                output+=each_course+" "
             });
-            console.log("Automation Stopped")
+            alert(`${output}`);
+            console.log(`${output}`);
             updatedCounts[new_section_available] = currentCounts[new_section_available];
             await chrome.storage.local.set({
                 courseSectionCounts: updatedCounts
             });
-            return;
         }
         // Save initialized / unchanged counts
         await chrome.storage.local.set({
@@ -189,7 +189,7 @@ async function runAutomation() {
     }
     console.log("Automation is ENABLED. Starting selection...");
 
-
+    let seat_output = `SEAT AVAILABLE: `
     // 1. Iterate Priorities
     for (const item of priorities) {
         const courseName = item.name.toUpperCase();
@@ -227,7 +227,7 @@ async function runAutomation() {
                 }
                 else{
                     if(!cseLabPattern.test(`${courseName}`)){
-                        alert(`Seat Available for ${courseName}.${section}`)
+                        seat_output += courseName +'.' +section+' '
                         console.log(`Seat Available for ${courseName}.${section}`)
                     }
                     
@@ -238,11 +238,11 @@ async function runAutomation() {
                 console.log(`${fullCode} seat not available`)
             }
         }
-
         if (courseAdded) {
             completedCourses.push(courseName);
         }
     }
+    if(!autoSave&&!(seat_output=='SEAT AVAILABLE: '))    alert(seat_output)
 
     // 3. Update Storage with Completed List (for Popup UI Checkmarks)
     await chrome.storage.local.set({ completedCourses: completedCourses });

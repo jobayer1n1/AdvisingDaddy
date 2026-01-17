@@ -25,7 +25,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://rds3.northsouth.edu/students/advising*"],
+      "matches": ["https://rds3.northsouth.edu/students/advising*","file:///C:/Users/jobay/Downloads/Advising.html"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
