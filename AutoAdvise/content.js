@@ -133,18 +133,18 @@ async function runAutomation() {
     const completedCourses = []; // To update UI
 
     const {
-        automationEnabled,
+        ControllerEnabled,
         alertOnNewSection,
         courseSectionCounts = {},
         autoSave
     } = await chrome.storage.local.get([
-        "automationEnabled",
+        "ControllerEnabled",
         "alertOnNewSection",
         "courseSectionCounts",
         "autoSave"
     ]);
 
-    if (!automationEnabled) {
+    if (!ControllerEnabled) {
         console.log("Automation is DISABLED.");
         return;
     }
