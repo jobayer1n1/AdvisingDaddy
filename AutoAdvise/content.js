@@ -120,6 +120,14 @@ function getCurrentSectionCounts() {
 // --- Main Automation Logic ---
 
 async function runAutomation() {
+    const data = await chrome.storage.local.get("advisingPriorities");
+    const priorities = data.advisingPriorities || []; // Format: [{name: "BIO103", sections: ["1","2"]}]
+    const prioritySet = new Set(priorities.map(p => p.name));
+    if (priorities.length === 0) return; // Nothing to do
+    const registeredSet = new Set(getRegisteredCourses());
+    const availableMap = getAvailableCourseMap();
+    const completedCourses = []; // To update UI
+
     const {
         automationEnabled,
         alertOnNewSection,
@@ -144,6 +152,10 @@ async function runAutomation() {
     if (alertOnNewSection) {
         const new_section_available=[]
         for (const course in currentCounts) {
+
+            if(!(!prioritySet.has(course))){
+                continue;
+            }
             // Initialize if missing
             if (!(course in courseSectionCounts)) {
                 updatedCounts[course] = currentCounts[course];
@@ -174,14 +186,6 @@ async function runAutomation() {
     }
     console.log("Automation is ENABLED. Starting selection...");
 
-    const data = await chrome.storage.local.get("advisingPriorities");
-    const priorities = data.advisingPriorities || []; // Format: [{name: "BIO103", sections: ["1","2"]}]
-
-    if (priorities.length === 0) return; // Nothing to do
-
-    const registeredSet = new Set(getRegisteredCourses());
-    const availableMap = getAvailableCourseMap();
-    const completedCourses = []; // To update UI
 
     // 1. Iterate Priorities
     for (const item of priorities) {
