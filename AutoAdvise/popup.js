@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const statusLabel = document.getElementById('statusLabel');
     const alertStatusToggle = document.getElementById("alertStatusToggle");
     const alertStatusText = document.getElementById("alertStatusText");
-
+    const autoSaveToggle = document.getElementById("autoSaveToggle")
+    const autoSaveText = document.getElementById("autoSaveText")
     // --- Toggle Logic ---
 
     function updateLabel(isEnabled) {
@@ -22,16 +23,26 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         alertStatusText.style.color = isEnabled ? "#28a745" : "#ffffffff";
     }
+    function updateAutoSaveLabel(isEnabled) {
+        autoSaveText.innerText = isEnabled
+            ? "Auto Save Enabled"
+            : "Auto Save Disabled";
+
+        autoSaveText.style.color = isEnabled ? "#28a745" : "#ffffffff";
+    }
 
     // Load Toggle States
     chrome.storage.local.get(
-        ['automationEnabled', 'alertOnNewSection'],
+        ['automationEnabled', 'alertOnNewSection','autoSave'],
         (res) => {
             masterToggle.checked = res.automationEnabled || false;
             const alertEnabled = res.alertOnNewSection || false;
+            const autoSaveEnabled = res.autoSave || false
             alertStatusToggle.checked = alertEnabled;
+            autoSaveToggle.checked = autoSaveEnabled
             updateAlertStatusLabel(alertEnabled);
             updateLabel(masterToggle.checked);
+            updateAutoSaveLabel(autoSaveEnabled)
         }
     );
 
@@ -52,6 +63,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             updateAlertStatusLabel(isEnabled);
+        });
+    }
+
+    if (autoSaveToggle) {
+        autoSaveToggle.addEventListener('change', () => {
+            const isEnabled = autoSaveToggle.checked;
+
+            chrome.storage.local.set({
+                autoSave: isEnabled
+            });
+
+            updateAutoSaveLabel(isEnabled);
         });
     }
 

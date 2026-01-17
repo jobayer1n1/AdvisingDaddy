@@ -5,6 +5,7 @@
 const SUBMIT_BTN_ID = "submit";
 const SLIP_ID = "advSlip";
 const COURSE_TABLE_ID = "courseList";
+const cseLabPattern = /^CSE\d+L$/;
 
 /**
  * Parses "40(40)" into { occupied: 40, total: 40 }
@@ -122,11 +123,13 @@ async function runAutomation() {
     const {
         automationEnabled,
         alertOnNewSection,
-        courseSectionCounts = {}
+        courseSectionCounts = {},
+        autoSave
     } = await chrome.storage.local.get([
         "automationEnabled",
         "alertOnNewSection",
-        "courseSectionCounts"
+        "courseSectionCounts",
+        "autoSave"
     ]);
 
     if (!automationEnabled) {
@@ -139,6 +142,7 @@ async function runAutomation() {
 
     // 🔔 NEW SECTION ALERT LOGIC
     if (alertOnNewSection) {
+        const new_section_available=[]
         for (const course in currentCounts) {
             // Initialize if missing
             if (!(course in courseSectionCounts)) {
@@ -148,19 +152,21 @@ async function runAutomation() {
 
             // Detect increase
             if (currentCounts[course] > courseSectionCounts[course]) {
-                alert(`New section available for ${course}`);
-                console.warn(`New section detected for ${course}. Automation stopped.`);
-
-                // Update stored count before stopping
-                updatedCounts[course] = currentCounts[course];
-                await chrome.storage.local.set({
-                    courseSectionCounts: updatedCounts
-                });
-
-                return; // ⛔ STOP AUTOMATION COMPLETELY
+                new_section_available.push(course)                
             }
         }
-
+        if(new_section_available.length>0){
+            new_section_available.forEach(each_course => {
+                alert(`New section available for ${each_course}`);
+                console.log(`New section detected for ${each_course}.`);
+            });
+            console.log("Automation Stopped")
+            updatedCounts[new_section_available] = currentCounts[new_section_available];
+            await chrome.storage.local.set({
+                courseSectionCounts: updatedCounts
+            });
+            return;
+        }
         // Save initialized / unchanged counts
         await chrome.storage.local.set({
             courseSectionCounts: updatedCounts
@@ -205,10 +211,20 @@ async function runAutomation() {
             // 2c. Check Availability
             if (target.occupied < target.total) {
                 // SEAT AVAILABLE
-                console.log(`Adding ${courseName}.${section}...`);
-                target.element.click(); // Click action
-                courseAdded = true;
-                break; // Stop checking other sections for this course
+                if(autoSave){
+                    console.log(`Adding ${courseName}.${section}...`);
+                    target.element.click(); // Click action
+                    courseAdded = true;
+                    break; // Stop checking other sections for this course
+                }
+                else{
+                    if(!cseLabPattern.test(`${courseName}`)){
+                        alert(`Seat Available for ${courseName}.${section}`)
+                        console.log(`Seat Available for ${courseName}.${section}`)
+                    }
+                    
+                }
+                
             } else {
                 // Section full, proceed to next section in priority
                 console.log(`${fullCode} seat not available`)
@@ -223,18 +239,26 @@ async function runAutomation() {
     // 3. Update Storage with Completed List (for Popup UI Checkmarks)
     await chrome.storage.local.set({ completedCourses: completedCourses });
 
-    // 4. Finalize
-    const submitBtn = document.getElementById(SUBMIT_BTN_ID);
-    if (submitBtn) {
-        console.log("Submitting...");
-        submitBtn.click();
-        
-        // Reload after click as per instructions
-        // We use a micro-delay to ensure the click event registers before reload kills the script
+
+    if(!autoSave){
         setTimeout(() => {
             location.reload(); 
-        }, 500); 
+        }, 500);
     }
+    else{
+        const submitBtn = document.getElementById(SUBMIT_BTN_ID);
+        if (submitBtn) {
+            console.log("Submitting...");
+            submitBtn.click();
+            
+            // Reload after click as per instructions
+            // We use a micro-delay to ensure the click event registers before reload kills the script
+            setTimeout(() => {
+                location.reload(); 
+            }, 500); 
+        }
+    }
+
 }
 
 // Run immediately on load
