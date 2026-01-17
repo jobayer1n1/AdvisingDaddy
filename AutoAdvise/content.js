@@ -272,7 +272,5 @@ async function runAutomation() {
 
 }
 
+runAutomation();
 
-setTimeout(()=> {
-    runAutomation();
-},500)
