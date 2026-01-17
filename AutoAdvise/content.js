@@ -242,13 +242,15 @@ async function runAutomation() {
             completedCourses.push(courseName);
         }
     }
-    if(!autoSave&&!(seat_output=='SEAT AVAILABLE: '))    alert(seat_output)
+
+    have_seat_update = !(seat_output==='SEAT AVAILABLE: ')
+    if(!autoSave&&have_seat_update)    alert(seat_output)
 
     // 3. Update Storage with Completed List (for Popup UI Checkmarks)
     await chrome.storage.local.set({ completedCourses: completedCourses });
 
 
-    if(!autoSave){
+    if(!autoSave||!have_seat_update){
         // setTimeout(() => {
         //     location.reload(); 
         // }, 500);
