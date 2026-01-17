@@ -22,6 +22,10 @@ function parseSeats(seatText) {
     return null;
 }
 
+const humanDelay = (min, max) =>
+    new Promise(r => setTimeout(r, min + Math.random() * (max - min)));
+
+
 /**
  * Parses the #advSlip table to find currently registered courses.
  * Returns a Set of strings: "COURSE.SECTION" (e.g., "BIO103.1")
@@ -152,8 +156,7 @@ async function runAutomation() {
     if (alertOnNewSection) {
         const new_section_available=[]
         for (const course in currentCounts) {
-
-            if(!(!prioritySet.has(course))){
+            if(!prioritySet.has(course)){
                 continue;
             }
             // Initialize if missing
@@ -217,6 +220,7 @@ async function runAutomation() {
                 // SEAT AVAILABLE
                 if(autoSave){
                     console.log(`Adding ${courseName}.${section}...`);
+                    await humanDelay(300, 1200)
                     target.element.click(); // Click action
                     courseAdded = true;
                     break; // Stop checking other sections for this course
@@ -245,25 +249,28 @@ async function runAutomation() {
 
 
     if(!autoSave){
-        setTimeout(() => {
-            location.reload(); 
-        }, 500);
+        // setTimeout(() => {
+        //     location.reload(); 
+        // }, 500);
     }
     else{
         const submitBtn = document.getElementById(SUBMIT_BTN_ID);
         if (submitBtn) {
             console.log("Submitting...");
+            await humanDelay(800, 2000);
             submitBtn.click();
             
             // Reload after click as per instructions
             // We use a micro-delay to ensure the click event registers before reload kills the script
-            setTimeout(() => {
-                location.reload(); 
-            }, 500); 
+            // setTimeout(() => {
+            //     location.reload(); 
+            // }, 500); 
         }
     }
 
 }
 
-// Run immediately on load
-runAutomation();
+
+setTimeout(()=> {
+    runAutomation();
+},500)
