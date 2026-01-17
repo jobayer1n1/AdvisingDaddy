@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Toggle Logic ---
 
     function updateLabel(isEnabled) {
-        statusLabel.innerText = isEnabled ? "Automation Enabled" : "Automation Disabled";
+        statusLabel.innerText = isEnabled ? "Controller Enabled" : "Controller Disabled";
         statusLabel.style.color = isEnabled ? "#28a745" : "#dc3545";
     }
     function updateAlertStatusLabel(isEnabled) {
@@ -33,9 +33,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load Toggle States
     chrome.storage.local.get(
-        ['automationEnabled', 'alertOnNewSection','autoSave'],
+        ['ControllerEnabled', 'alertOnNewSection','autoSave'],
         (res) => {
-            masterToggle.checked = res.automationEnabled || false;
+            masterToggle.checked = res.ControllerEnabled || false;
             const alertEnabled = res.alertOnNewSection || false;
             const autoSaveEnabled = res.autoSave || false
             alertStatusToggle.checked = alertEnabled;
@@ -50,14 +50,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     masterToggle.addEventListener('change', () => {
         const isEnabled = masterToggle.checked;
-        chrome.storage.local.set({ automationEnabled: isEnabled });
+        chrome.storage.local.set({ ControllerEnabled: isEnabled });
         updateLabel(isEnabled);
     });
 
     if (alertStatusToggle) {
         alertStatusToggle.addEventListener('change', () => {
             const isEnabled = alertStatusToggle.checked;
-
             chrome.storage.local.set({
                 alertOnNewSection: isEnabled
             });
