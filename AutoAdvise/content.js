@@ -127,6 +127,7 @@ async function runAutomation() {
     const data = await chrome.storage.local.get("advisingPriorities");
     const priorities = data.advisingPriorities || []; // Format: [{name: "BIO103", sections: ["1","2"]}]
     const prioritySet = new Set(priorities.map(p => p.name));
+    const submitBtn = document.getElementById(SUBMIT_BTN_ID);
     if (priorities.length === 0) return; // Nothing to do
     const registeredSet = new Set(getRegisteredCourses());
     const availableMap = getAvailableCourseMap();
@@ -219,6 +220,8 @@ async function runAutomation() {
             if (target.occupied < target.total) {
                 // SEAT AVAILABLE
                 if(autoSave){
+                    console.log(`Seat Available for ${courseName}.${section}`)
+                    seat_output += courseName +'.' +section+' '
                     console.log(`Adding ${courseName}.${section}...`);
                     await humanDelay(300, 1200)
                     target.element.click(); // Click action
@@ -256,10 +259,9 @@ async function runAutomation() {
         // }, 500);
     }
     else{
-        const submitBtn = document.getElementById(SUBMIT_BTN_ID);
         if (submitBtn) {
             console.log("Submitting...");
-            await humanDelay(800, 2000);
+    
             submitBtn.click();
             
             // Reload after click as per instructions
@@ -267,6 +269,9 @@ async function runAutomation() {
             // setTimeout(() => {
             //     location.reload(); 
             // }, 500); 
+        }
+        else{
+            console.log("No submit Button found")
         }
     }
 
