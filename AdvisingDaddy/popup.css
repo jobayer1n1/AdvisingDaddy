@@ -19,20 +19,51 @@
 body {
     width: 300px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    padding: 10px;
+    padding: 16px;
+    margin: 0;
     background-color: #f9f9f9;
     color: #333;
     transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 h2, h3 {
-    margin-top: 0;
+    margin: 0;
     color: #333;
 }
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.popup-title {
+    font-family: serif;
+    text-align: center;
+    margin-bottom: 2px;
+}
+
+.queue-title {
+    font-family: serif;
+    text-align: center;
+    margin-top: 2px;
+}
+
+.popup-footer {
+    margin-top: 10px;
+    text-align: center;
+    font-family: monospace;
+}
+
+hr {
+    margin: 2px 0;
+}
+
 .input-group {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin: 0;
 }
 
 input {
@@ -67,7 +98,7 @@ button:hover {
 .danger-btn {
     background-color: #dc3545;
     color: #fff;
-    margin-top: 15px;
+    margin-top: 2px;
     width: 100%;
 }
 
@@ -84,6 +115,7 @@ button:hover {
     border: 1px solid #ddd;
     border-radius: 4px;
     background: white;
+    margin-top: 2px;
 }
 
 .course-row {
@@ -188,7 +220,7 @@ button:hover {
     padding: 10px;
     background: #e7f3ff;
     border-radius: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 0;
 }
 
 /* =========================
@@ -319,8 +351,8 @@ body.dark .danger-btn {
 body.dark #addBtn {
     border: 1px solid var(--accent-blue);
     color: var(--accent-blue);
-    margin-top: 6px;
-    margin-bottom: 6px;
+    margin-top: 2px;
+    margin-bottom: 0;
 }
 
 body.dark .danger-btn {
