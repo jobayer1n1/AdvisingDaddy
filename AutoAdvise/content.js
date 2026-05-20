@@ -155,35 +155,33 @@ async function runAutomation() {
 
     // 🔔 NEW SECTION ALERT LOGIC
     if (alertOnNewSection) {
-        const new_section_available=[]
+        const new_section_available = [];
         for (const course in currentCounts) {
-            if(!prioritySet.has(course)){
-                continue;
-            }
-            // Initialize if missing
-            if (!(course in courseSectionCounts)) {
-                updatedCounts[course] = currentCounts[course];
+            if (!prioritySet.has(course)) {
                 continue;
             }
 
-            // Detect increase
-            if (currentCounts[course] > courseSectionCounts[course]) {
-                new_section_available.push(course)                
+            const previousCount = courseSectionCounts[course];
+            const currentCount = currentCounts[course];
+
+            // Detect increase only when we have a previous baseline
+            if (typeof previousCount === "number" && currentCount > previousCount) {
+                new_section_available.push(course);
             }
+
+            // Always refresh baseline with latest data for next run
+            updatedCounts[course] = currentCount;
         }
-        if(new_section_available.length>0){
-            let output = "NEW SECTION AVAILABLE: "
+
+        if (new_section_available.length > 0) {
+            let output = "NEW SECTION AVAILABLE: ";
             new_section_available.forEach(each_course => {
-                output+=each_course+" "
+                output += each_course + " ";
             });
             alert(`${output}`);
             console.log(`${output}`);
-            updatedCounts[new_section_available] = currentCounts[new_section_available];
-            await chrome.storage.local.set({
-                courseSectionCounts: updatedCounts
-            });
         }
-        // Save initialized / unchanged counts
+
         await chrome.storage.local.set({
             courseSectionCounts: updatedCounts
         });
