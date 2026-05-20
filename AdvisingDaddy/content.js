@@ -3,7 +3,6 @@
 // --- Configuration & Helpers ---
 const ext = typeof browser !== "undefined" ? browser : chrome;
 
-const SUBMIT_BTN_ID = "submit";
 const SLIP_ID = "advSlip";
 const COURSE_TABLE_ID = "courseList";
 const cseLabPattern = /^CSE\d+L$/;
@@ -25,6 +24,18 @@ function parseSeats(seatText) {
 
 const humanDelay = (min, max) =>
     new Promise(r => setTimeout(r, min + Math.random() * (max - min)));
+
+/**
+ * Finds the advising "Save" button in a way that is resilient to duplicate/changing IDs.
+ */
+function getSaveButton() {
+    const submitInputs = Array.from(document.querySelectorAll('input[type="submit"]'));
+    return submitInputs.find(btn => {
+        const value = (btn.value || "").trim().toLowerCase();
+        const onClick = (btn.getAttribute("onclick") || "").toLowerCase();
+        return value === "save" || onClick.includes("saveadvising");
+    }) || null;
+}
 
 
 /**
@@ -154,7 +165,7 @@ async function runAutomation() {
     const data = await ext.storage.local.get("advisingPriorities");
     const priorities = data.advisingPriorities || [];
     const prioritySet = new Set(priorities.map(p => p.name));
-    const submitBtn = document.getElementById(SUBMIT_BTN_ID);
+    const submitBtn = getSaveButton();
     if (priorities.length === 0) return;
 
     const registeredSet = new Set(getRegisteredCourses());
