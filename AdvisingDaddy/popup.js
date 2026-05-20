@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Toggle Logic ---
 
     function updateLabel(isEnabled) {
-        statusLabel.innerText = isEnabled ? "Controller Enabled" : "Controller Disabled";
+        statusLabel.innerText = isEnabled ? "Addon Service Enabled" : "Addon Service Disabled";
         statusLabel.style.color = isEnabled ? "#91C6BC" : "#dc3545";
     }
     function updateAlertStatusLabel(isEnabled) {
