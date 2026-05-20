@@ -1,6 +1,7 @@
 // content.js
 
 // --- Configuration & Helpers ---
+const ext = typeof browser !== "undefined" ? browser : chrome;
 
 const SUBMIT_BTN_ID = "submit";
 const SLIP_ID = "advSlip";
@@ -150,7 +151,7 @@ function getCurrentSectionsByCourse() {
 // --- Main Automation Logic ---
 
 async function runAutomation() {
-    const data = await chrome.storage.local.get("advisingPriorities");
+    const data = await ext.storage.local.get("advisingPriorities");
     const priorities = data.advisingPriorities || [];
     const prioritySet = new Set(priorities.map(p => p.name));
     const submitBtn = document.getElementById(SUBMIT_BTN_ID);
@@ -166,7 +167,7 @@ async function runAutomation() {
         courseSectionCounts = {},
         courseSectionSnapshots = {},
         autoSave
-    } = await chrome.storage.local.get([
+    } = await ext.storage.local.get([
         "ControllerEnabled",
         "alertOnNewSection",
         "courseSectionCounts",
@@ -220,7 +221,7 @@ async function runAutomation() {
             console.log(output);
         }
 
-        await chrome.storage.local.set({
+        await ext.storage.local.set({
             courseSectionCounts: updatedCounts,
             courseSectionSnapshots: updatedSnapshots
         });
@@ -283,7 +284,7 @@ async function runAutomation() {
         alert(`SEAT AVAILABLE: ${seatAvailableMatches.join(", ")}`);
     }
 
-    await chrome.storage.local.set({ completedCourses: completedCourses });
+    await ext.storage.local.set({ completedCourses: completedCourses });
 
     if (!autoSave || !haveSeatUpdate) {
         // no-op
@@ -298,3 +299,4 @@ async function runAutomation() {
 }
 
 runAutomation();
+

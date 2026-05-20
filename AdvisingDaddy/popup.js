@@ -1,3 +1,5 @@
+const ext = typeof browser !== "undefined" ? browser : chrome;
+
 document.addEventListener('DOMContentLoaded', async () => {
     const courseInput = document.getElementById('courseInput');
     const sectionInput = document.getElementById('sectionInput');
@@ -32,32 +34,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Load Toggle States
-    chrome.storage.local.get(
-        ['ControllerEnabled', 'alertOnNewSection','autoSave'],
-        (res) => {
-            masterToggle.checked = res.ControllerEnabled || false;
-            const alertEnabled = res.alertOnNewSection || false;
-            const autoSaveEnabled = res.autoSave || false
-            alertStatusToggle.checked = alertEnabled;
-            autoSaveToggle.checked = autoSaveEnabled
-            updateAlertStatusLabel(alertEnabled);
-            updateLabel(masterToggle.checked);
-            updateAutoSaveLabel(autoSaveEnabled)
-        }
+    const res = await ext.storage.local.get(
+        ['ControllerEnabled', 'alertOnNewSection', 'autoSave']
     );
+    masterToggle.checked = res.ControllerEnabled || false;
+    const alertEnabled = res.alertOnNewSection || false;
+    const autoSaveEnabled = res.autoSave || false;
+    alertStatusToggle.checked = alertEnabled;
+    autoSaveToggle.checked = autoSaveEnabled;
+    updateAlertStatusLabel(alertEnabled);
+    updateLabel(masterToggle.checked);
+    updateAutoSaveLabel(autoSaveEnabled);
 
 
 
     masterToggle.addEventListener('change', () => {
         const isEnabled = masterToggle.checked;
-        chrome.storage.local.set({ ControllerEnabled: isEnabled });
+        ext.storage.local.set({ ControllerEnabled: isEnabled });
         updateLabel(isEnabled);
     });
 
     if (alertStatusToggle) {
         alertStatusToggle.addEventListener('change', () => {
             const isEnabled = alertStatusToggle.checked;
-            chrome.storage.local.set({
+            ext.storage.local.set({
                 alertOnNewSection: isEnabled
             });
 
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         autoSaveToggle.addEventListener('change', () => {
             const isEnabled = autoSaveToggle.checked;
 
-            chrome.storage.local.set({
+            ext.storage.local.set({
                 autoSave: isEnabled
             });
 
@@ -94,14 +94,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const sections = sectionStr.split(',').map(s => s.trim()).filter(s => s !== "");
         const newEntry = { name: course, sections: sections };
 
-        const data = await chrome.storage.local.get("advisingPriorities");
+        const data = await ext.storage.local.get("advisingPriorities");
         const currentList = data.advisingPriorities || [];
         
         // Update existing or add new
         const filteredList = currentList.filter(item => item.name !== course);
         filteredList.push(newEntry);
 
-        await chrome.storage.local.set({ advisingPriorities: filteredList });
+        await ext.storage.local.set({ advisingPriorities: filteredList });
         
         courseInput.value = '';
         sectionInput.value = '';
@@ -111,13 +111,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Smart Clear: Clears only the courses, keeps your toggles/settings
     clearBtn.addEventListener('click', async () => {
         if (confirm("Are you sure you want to clear your course list?")) {
-            await chrome.storage.local.set({ advisingPriorities: [], completedCourses: [] });
+            await ext.storage.local.set({ advisingPriorities: [], completedCourses: [] });
             renderList();
         }
     });
 
     async function renderList() {
-        const data = await chrome.storage.local.get(["advisingPriorities", "completedCourses"]);
+        const data = await ext.storage.local.get(["advisingPriorities", "completedCourses"]);
         const list = data.advisingPriorities || [];
         const completed = data.completedCourses || [];
 
@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
 
-                const stored = await chrome.storage.local.get("advisingPriorities");
+                const stored = await ext.storage.local.get("advisingPriorities");
                 const current = stored.advisingPriorities || [];
                 const updated = current.map(course =>
                     course.name === courseName
@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         : course
                 );
 
-                await chrome.storage.local.set({ advisingPriorities: updated });
+                await ext.storage.local.set({ advisingPriorities: updated });
                 renderList();
             });
         });
@@ -211,15 +211,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const nameToRemove = e.currentTarget.getAttribute('data-name');
                 const shouldDelete = confirm(`Remove ${nameToRemove} from the queue?`);
                 if (!shouldDelete) return;
-                const newData = await chrome.storage.local.get("advisingPriorities");
+                const newData = await ext.storage.local.get("advisingPriorities");
                 const current = newData.advisingPriorities || [];
                 const updated = current.filter(i => i.name !== nameToRemove);
                 
                 // Also remove from completed if it was there
-                const completedData = await chrome.storage.local.get("completedCourses");
+                const completedData = await ext.storage.local.get("completedCourses");
                 const updatedCompleted = (completedData.completedCourses || []).filter(n => n !== nameToRemove);
 
-                await chrome.storage.local.set({ 
+                await ext.storage.local.set({ 
                     advisingPriorities: updated, 
                     completedCourses: updatedCompleted 
                 });
@@ -228,3 +228,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 });
+

@@ -3,6 +3,12 @@
   "name": "AdvisingDaddy",
   "version": "1.0",
   "description": "Automated course selection and alerts based on priority.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "advisingdaddy@jobayer.dev",
+      "strict_min_version": "109.0"
+    }
+  },
   "permissions": [
     "storage",
     "activeTab"
@@ -25,7 +31,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://rds3.northsouth.edu/students/advising*","file:///C:/Users/jobay/Downloads/Advising.html"],
+      "matches": ["https://rds3.northsouth.edu/students/advising*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

@@ -1,122 +1,38 @@
-# 🎓 NSU Advising Automator 
+# NSU Advising Addon
 
-A Chrome Extension built to automate course selection on the North South University advising portal. It intelligently monitors sections, seat availability, handles section priorities, and automates the submission process based on user-defined preferences.
+Simple Chrome extension to help monitor and add preferred NSU advising sections.
 
----
+## What it does
+- Saves your course and section priority list (example: `BIO103` -> `1,2,3`).
+- Checks sections from left to right by priority.
+- If a higher-priority section is already in your advising slip, lower ones are skipped for both seat available alert and auto-save.
+- Alerts you when seats are available.
+- Can auto-select and submit when auto-save is enabled.
+- Can alert you when a new section appears for the queued courses.
 
-## 📂 Addon Structure
+## Current toggles
+- `Addon Service Enabled`: Master switch for automation.
+- `New Section Alert Enabled`: Alerts when a new section appears for queued courses.
+- `Auto Save Enabled`:
+- ON: clicks available section based on priority and submits.
+- OFF: only alerts seat availability (no auto submit).
 
-| File | Description |
-| --- | --- |
-| `manifest.json` | Configuration file defining permissions, host matching, and extension metadata (Manifest V3). |
-| `content.js` | The automation engine. Runs directly on the advising page to parse the DOM, check seats, and click buttons. |
-| `popup.html` | The user interface structure for adding course priorities and toggling settings. |
-| `popup.js` | Handles UI logic, saves user preferences to `chrome.storage`, and updates status labels. |
-| `popup.css` | Styling for the popup, including the priority list and toggle switches. |
+## Installation
+Install from the GitHub **Releases** section where packaged files will be uploaded:
 
----
+1. Go to this repository's **Releases** page.
+2. Download the **Chrome** package (`.zip` file).
+3. Download the **Firefox** package (`.xpi` file).
+4. Install the file for your browser:
+- Chrome: open `chrome://extensions`, enable Developer mode, then use **Load unpacked** after extracting the zip.
+- Firefox: open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on**, then select the `.xpi` file.
 
-## 🛠️ Installation Guide
+## Usage
+1. Open NSU advising page: `https://rds3.northsouth.edu/students/advising`.
+2. In addon popup, add course code and section list.
+3. Turn on the toggles you want, then refresh/revisit advising page.
 
-1. **Download the AutoAdvise.zip file from releases and unzip it:** Ensure all files (`manifest.json`, `content.js`, `popup.html`, `popup.js`, `popup.css`) are in a single folder named `AutoAdvise`.
-2. **Open Extensions Menu:** Open Chrome and navigate to `chrome://extensions/`.
-3. **Developer Mode:** Toggle **Developer mode** to ON (top right corner).
-4. **Load Extension:** Click **Load unpacked** and select your folder.
-5. **Verify:** The extension icon should appear in your toolbar.
-
----
-
-## ⚙️ Logic & Algorithms
-
-### 1. Automation Control (Master Switch)
-
-* **Logic:** The content script checks the `automationEnabled` flag in `chrome.storage.local` immediately upon loading.
-* **Behavior:**
-* **IF TRUE:** The script executes the scanning and clicking logic.
-* **IF FALSE:** The script logs "Automation Paused" and terminates immediately, allowing manual user interaction.
-
-
-
-### 2. New Section Alert
-
-* **Logic:** It counts and stores total sections of each queued course. If the amount increases in next iteration, it raises a alert and skip furthur script execution. You have to reload to continue automation.
-
-
-
-### 3. Priority Handling
-
-* **Input Format:** Users input a Course Name (e.g., `BIO103`) and a list of Sections (e.g., `1, 2, 3`).
-* **Execution Order:** The script iterates through the course list from top to bottom.
-* **Section Selection:** For each course, it tries sections **left-to-right**.
-1. Check Section 1 availability.
-2. If full, check Section 2.
-3. If Section 2 is available, **Click** -> **Stop** (move to next course).
-
-
-* *Constraint:* It never attempts to add multiple sections for the same course.
-
-
-
-### 4. Duplicate Prevention (Exact Match)
-
-To prevent the "Already Registered" error:
-
-* **Parsing:** The script scrapes the `#advSlip` table (the list of added courses).
-* **Comparison:** It compares the target `COURSE.SECTION` (e.g., `BIO103.8`) against the registered list.
-* **Rule:** It only skips the action if the **exact** section is found. If you have `BIO103.8` but want `BIO103.9`, it will still attempt to add `9` (unless you remove `8` manually or via script, though currently it only adds).
-
-### 5. Seat Availability Parsing
-
-* **DOM Target:** It looks for the second `<td>` in every row of `#courseList`.
-* **Text Format:** Strictly parses `occupied(total)` (e.g., `35(40)`).
-* **Calculation:** A seat is considered **Available** if:
-```javascript
-occupied < total
-
-```
-
-
-
-### 6. Finalization & Auto-Reload
-
-* **Submission:** If any course was successfully clicked/added during the cycle, the script clicks the `#submit` button.
-* **Reload Loop:** After submission (or if no seats were found), the script checks the `autoReloadEnabled` flag. If true, it refreshes the page to restart the cycle and catch newly opened seats.
-
----
-
-## 🖥️ UI Features (`popup.html` & `popup.js`)
-
-1. **Master Toggle:**
-* Enables/Disables the entire script.
-* **Dynamic Label:** Text changes from "Automation Disabled" (Red) to "Automation Enabled" (Green) dynamically using DOM manipulation.
-
-
-2. **AlertStatusToggle:**
-* Enables/Disable alert for new sections.
-* **Dynamic Label:** same as Master Toggle
-
-3. **Course Input:**
-* Accepts case-insensitive input (e.g., `bio103` becomes `BIO103`).
-* Sanitizes section lists (removes extra spaces).
-
-
-4. **Status Indicators:**
-* Uses HTML Entities (e.g., `&#9989;` for ✅) to ensure cross-platform compatibility and avoid UTF-8 encoding issues.
-* Shows a checkmark next to courses detected in the `#advSlip`.
-
-
-
----
-
-## 🔍 Technical Constraints & Requirements
-
-* **URL Matching:** Strictly runs only on `https://rds3.northsouth.edu/students/advising*`.
-* **DOM Dependency:** Relies on specific IDs:
-* `#advSlip` (Registered courses table)
-* `#courseList` (Available courses table)
-* `#submit` (Save button)
-
-
-* **Storage:** Uses `chrome.storage.local` to persist user preferences across browser restarts.
-
----
+## Notes
+- Runs only on NSU advising URL (plus local test HTML path in manifest).
+- Data is saved in `chrome.storage.local`.
+- Clear button removes only course list/completed status, not toggle settings.
