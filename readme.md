@@ -34,5 +34,5 @@ Install from the GitHub **Releases** section where packaged files will be upload
 
 ## Notes
 - Runs only on NSU advising URL (plus local test HTML path in manifest).
-- Data is saved in `chrome.storage.local`.
+- Data is saved in extension local storage (`chrome.storage.local` / `browser.storage.local`).
 - Clear button removes only course list/completed status, not toggle settings.
