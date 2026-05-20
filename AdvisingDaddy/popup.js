@@ -134,22 +134,64 @@ document.addEventListener('DOMContentLoaded', async () => {
             row.setAttribute('data-name', item.name);
 
             const isDone = completed.includes(item.name);
-            const statusIcon = isDone ? '<span class="check">&#9989;</span>' : '<span class="pending">&#9203;</span>';
+            const courseInfo = document.createElement('div');
+            courseInfo.className = 'course-info';
 
-            row.innerHTML = `
-                <div class="course-info">
-                    <strong>${item.name}</strong> 
-                    <span class="sections">(${item.sections.join(', ')})</span>
-                    ${statusIcon}
-                </div>
-                <div class="course-actions">
-                    <button class="edit-btn" data-name="${item.name}" title="Edit Sections"><span class="edit-icon">&#9998;</span></button>
-                    <button class="remove-btn" data-name="${item.name}" title="Remove Course">&#10006;</button>
-                </div>
-                <div class="edit-panel" data-name="${item.name}">
-                    <input type="text" class="edit-sections-input" data-name="${item.name}" value="${item.sections.join(',')}" placeholder="Sections (e.g., 1,2,3)">
-                </div>
-            `;
+            const strong = document.createElement('strong');
+            strong.textContent = item.name;
+            courseInfo.appendChild(strong);
+
+            courseInfo.appendChild(document.createTextNode(' '));
+
+            const sections = document.createElement('span');
+            sections.className = 'sections';
+            sections.textContent = `(${item.sections.join(', ')})`;
+            courseInfo.appendChild(sections);
+
+            courseInfo.appendChild(document.createTextNode(' '));
+
+            const status = document.createElement('span');
+            status.className = isDone ? 'check' : 'pending';
+            status.textContent = isDone ? '\u2705' : '\u23f3';
+            courseInfo.appendChild(status);
+
+            const actions = document.createElement('div');
+            actions.className = 'course-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-btn';
+            editBtn.setAttribute('data-name', item.name);
+            editBtn.title = 'Edit Sections';
+
+            const editIcon = document.createElement('span');
+            editIcon.className = 'edit-icon';
+            editIcon.textContent = '\u270e';
+            editBtn.appendChild(editIcon);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.setAttribute('data-name', item.name);
+            removeBtn.title = 'Remove Course';
+            removeBtn.textContent = '\u2716';
+
+            actions.appendChild(editBtn);
+            actions.appendChild(removeBtn);
+
+            const editPanel = document.createElement('div');
+            editPanel.className = 'edit-panel';
+            editPanel.setAttribute('data-name', item.name);
+
+            const editInput = document.createElement('input');
+            editInput.type = 'text';
+            editInput.className = 'edit-sections-input';
+            editInput.setAttribute('data-name', item.name);
+            editInput.value = item.sections.join(',');
+            editInput.placeholder = 'Sections (e.g., 1,2,3)';
+            editPanel.appendChild(editInput);
+
+            row.appendChild(courseInfo);
+            row.appendChild(actions);
+            row.appendChild(editPanel);
             priorityList.appendChild(row);
         });
 

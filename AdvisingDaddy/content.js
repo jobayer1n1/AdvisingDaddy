@@ -230,6 +230,7 @@ async function runAutomation() {
     console.log("Automation is ENABLED. Starting selection...");
 
     const seatAvailableMatches = [];
+    let autoSaveSelectionMade = false;
 
     for (const item of priorities) {
         const courseName = item.name.toUpperCase();
@@ -261,6 +262,7 @@ async function runAutomation() {
                     console.log(`Adding ${courseName}.${section}...`);
                     await humanDelay(300, 1200);
                     target.element.click();
+                    autoSaveSelectionMade = true;
                     courseAdded = true;
                     break;
                 } else {
@@ -286,7 +288,7 @@ async function runAutomation() {
 
     await ext.storage.local.set({ completedCourses: completedCourses });
 
-    if (!autoSave || !haveSeatUpdate) {
+    if (!autoSave || !autoSaveSelectionMade) {
         // no-op
     } else {
         if (submitBtn) {
