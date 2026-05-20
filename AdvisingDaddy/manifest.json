@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "AutoAdvise",
+  "name": "AdvisingDaddy",
   "version": "1.0",
-  "description": "Automated course selection based on priority.",
+  "description": "Automated course selection and alerts based on priority.",
   "permissions": [
     "storage",
     "activeTab"

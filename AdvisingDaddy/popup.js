@@ -14,21 +14,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function updateLabel(isEnabled) {
         statusLabel.innerText = isEnabled ? "Controller Enabled" : "Controller Disabled";
-        statusLabel.style.color = isEnabled ? "#28a745" : "#dc3545";
+        statusLabel.style.color = isEnabled ? "#91C6BC" : "#dc3545";
     }
     function updateAlertStatusLabel(isEnabled) {
         alertStatusText.innerText = isEnabled
             ? "New Section Alert Enabled"
             : "New Section Alert Disabled";
 
-        alertStatusText.style.color = isEnabled ? "#28a745" : "#ffffffff";
+        alertStatusText.style.color = isEnabled ? "#91C6BC" : "#ffffffff";
     }
     function updateAutoSaveLabel(isEnabled) {
         autoSaveText.innerText = isEnabled
             ? "Auto Save Enabled"
             : "Auto Save Disabled";
 
-        autoSaveText.style.color = isEnabled ? "#28a745" : "#ffffffff";
+        autoSaveText.style.color = isEnabled ? "#91C6BC" : "#ffffffff";
     }
 
     // Load Toggle States
@@ -131,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         list.forEach((item) => {
             const row = document.createElement('div');
             row.className = 'course-row';
+            row.setAttribute('data-name', item.name);
 
             const isDone = completed.includes(item.name);
             const statusIcon = isDone ? '<span class="check">&#9989;</span>' : '<span class="pending">&#9203;</span>';
@@ -141,15 +142,75 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span class="sections">(${item.sections.join(', ')})</span>
                     ${statusIcon}
                 </div>
-                <button class="remove-btn" data-name="${item.name}">&#10006;</button> 
+                <div class="course-actions">
+                    <button class="edit-btn" data-name="${item.name}" title="Edit Sections"><span class="edit-icon">&#9998;</span></button>
+                    <button class="remove-btn" data-name="${item.name}" title="Remove Course">&#10006;</button>
+                </div>
+                <div class="edit-panel" data-name="${item.name}">
+                    <input type="text" class="edit-sections-input" data-name="${item.name}" value="${item.sections.join(',')}" placeholder="Sections (e.g., 1,2,3)">
+                </div>
             `;
             priorityList.appendChild(row);
+        });
+
+        // Edit / Save listeners
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const targetBtn = e.currentTarget;
+                const courseName = targetBtn.getAttribute('data-name');
+                const row = targetBtn.closest('.course-row');
+                const panel = row.querySelector('.edit-panel');
+                const input = row.querySelector('.edit-sections-input');
+
+                const isEditing = row.classList.contains('editing');
+                if (!isEditing) {
+                    row.classList.add('editing');
+                    panel.style.display = 'block';
+                    targetBtn.innerText = 'Save';
+                    targetBtn.classList.add('save-mode');
+                    input.focus();
+                    const endPos = input.value.length;
+                    input.setSelectionRange(endPos, endPos);
+                    return;
+                }
+
+                const sectionStr = input.value.trim();
+                if (!sectionStr) {
+                    alert("Sections cannot be empty.");
+                    input.focus();
+                    return;
+                }
+
+                const sections = sectionStr
+                    .split(',')
+                    .map(s => s.trim())
+                    .filter(s => s !== "");
+
+                if (sections.length === 0) {
+                    alert("Please provide at least one valid section.");
+                    input.focus();
+                    return;
+                }
+
+                const stored = await chrome.storage.local.get("advisingPriorities");
+                const current = stored.advisingPriorities || [];
+                const updated = current.map(course =>
+                    course.name === courseName
+                        ? { ...course, sections }
+                        : course
+                );
+
+                await chrome.storage.local.set({ advisingPriorities: updated });
+                renderList();
+            });
         });
 
         // Delete listeners
         document.querySelectorAll('.remove-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const nameToRemove = e.target.getAttribute('data-name');
+                const nameToRemove = e.currentTarget.getAttribute('data-name');
+                const shouldDelete = confirm(`Remove ${nameToRemove} from the queue?`);
+                if (!shouldDelete) return;
                 const newData = await chrome.storage.local.get("advisingPriorities");
                 const current = newData.advisingPriorities || [];
                 const updated = current.filter(i => i.name !== nameToRemove);
