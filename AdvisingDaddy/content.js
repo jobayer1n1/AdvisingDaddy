@@ -37,15 +37,11 @@ function getRegisteredCourses() {
 
     // Target the table inside the slip div
     const rows = slipDiv.querySelectorAll("table.slip tr");
-    
+
     rows.forEach(row => {
-        // Skip header/footer rows based on structure provided
         const tds = row.querySelectorAll("td");
-        // Structure: [SavedIcon, CourseName, Credit, Time, Fees, DeleteIcon]
-        // CourseName is at index 1
         if (tds.length > 2) {
             const courseText = tds[1].innerText.trim();
-            // Validate it looks like COURSE.SECTION
             if (courseText.includes(".")) {
                 registered.add(courseText.toUpperCase());
             }
@@ -64,28 +60,26 @@ function getAvailableCourseMap() {
     if (!table) return map;
 
     const rows = table.querySelectorAll("tr");
-    
+
     rows.forEach(row => {
         const tds = row.querySelectorAll("td");
         if (tds.length < 2) return;
 
-        // Extract Course Name and Section from 1st TD (e.g., "BIO103.1")
-        const fullText = tds[0].innerText.trim(); 
+        const fullText = tds[0].innerText.trim();
         const splitIndex = fullText.lastIndexOf(".");
-        
+
         if (splitIndex === -1) return;
 
         const courseName = fullText.substring(0, splitIndex).toUpperCase();
         const section = fullText.substring(splitIndex + 1);
 
-        // Extract Seats from 2nd TD (e.g., "40(40)")
         const seatData = parseSeats(tds[1].innerText);
 
         if (!map[courseName]) map[courseName] = {};
-        
+
         if (seatData) {
             map[courseName][section] = {
-                element: tds[0], // We click the first TD to add
+                element: tds[0],
                 occupied: seatData.occupied,
                 total: seatData.total
             };
@@ -95,7 +89,7 @@ function getAvailableCourseMap() {
 }
 
 /**
- * Counts how many sections are currently available per course
+ * Counts how many sections are currently available per course.
  * Returns: { BIO103: 3, CSE311: 2 }
  */
 function getCurrentSectionCounts() {
@@ -109,7 +103,7 @@ function getCurrentSectionCounts() {
         const tds = row.querySelectorAll("td");
         if (tds.length < 2) return;
 
-        const text = tds[0].innerText.trim(); // e.g. BIO103.1
+        const text = tds[0].innerText.trim();
         const idx = text.lastIndexOf(".");
         if (idx === -1) return;
 
@@ -120,28 +114,63 @@ function getCurrentSectionCounts() {
     return counts;
 }
 
+/**
+ * Captures currently visible sections per course.
+ * Returns: { BIO103: ["1","2"], CSE332: ["9","10"] }
+ */
+function getCurrentSectionsByCourse() {
+    const byCourse = {};
+    const table = document.getElementById(COURSE_TABLE_ID);
+    if (!table) return byCourse;
+
+    const rows = table.querySelectorAll("tr");
+    rows.forEach(row => {
+        const tds = row.querySelectorAll("td");
+        if (tds.length < 1) return;
+
+        const text = tds[0].innerText.trim();
+        const idx = text.lastIndexOf(".");
+        if (idx === -1) return;
+
+        const course = text.substring(0, idx).toUpperCase();
+        const section = text.substring(idx + 1);
+
+        if (!byCourse[course]) byCourse[course] = [];
+        byCourse[course].push(section);
+    });
+
+    Object.keys(byCourse).forEach(course => {
+        byCourse[course] = [...new Set(byCourse[course])];
+    });
+
+    return byCourse;
+}
+
 
 // --- Main Automation Logic ---
 
 async function runAutomation() {
     const data = await chrome.storage.local.get("advisingPriorities");
-    const priorities = data.advisingPriorities || []; // Format: [{name: "BIO103", sections: ["1","2"]}]
+    const priorities = data.advisingPriorities || [];
     const prioritySet = new Set(priorities.map(p => p.name));
     const submitBtn = document.getElementById(SUBMIT_BTN_ID);
-    if (priorities.length === 0) return; // Nothing to do
+    if (priorities.length === 0) return;
+
     const registeredSet = new Set(getRegisteredCourses());
     const availableMap = getAvailableCourseMap();
-    const completedCourses = []; // To update UI
+    const completedCourses = [];
 
     const {
         ControllerEnabled,
         alertOnNewSection,
         courseSectionCounts = {},
+        courseSectionSnapshots = {},
         autoSave
     } = await chrome.storage.local.get([
         "ControllerEnabled",
         "alertOnNewSection",
         "courseSectionCounts",
+        "courseSectionSnapshots",
         "autoSave"
     ]);
 
@@ -151,129 +180,121 @@ async function runAutomation() {
     }
 
     const currentCounts = getCurrentSectionCounts();
-    let updatedCounts = { ...courseSectionCounts };
+    const currentSectionsByCourse = getCurrentSectionsByCourse();
+    const updatedCounts = { ...courseSectionCounts };
+    const updatedSnapshots = { ...courseSectionSnapshots };
 
-    // 🔔 NEW SECTION ALERT LOGIC
+    // NEW SECTION ALERT LOGIC
     if (alertOnNewSection) {
-        const new_section_available = [];
-        for (const course in currentCounts) {
+        const hasBaseline = Object.keys(courseSectionSnapshots || {}).length > 0;
+        const newSectionCodes = [];
+
+        for (const course in currentSectionsByCourse) {
             if (!prioritySet.has(course)) {
                 continue;
             }
 
             const previousCount = courseSectionCounts[course];
-            const currentCount = currentCounts[course];
+            const currentCount = currentCounts[course] || 0;
+            const currentSections = currentSectionsByCourse[course] || [];
+            const previousSections = Array.isArray(courseSectionSnapshots[course])
+                ? courseSectionSnapshots[course]
+                : [];
 
-            // Detect increase only when we have a previous baseline
             if (typeof previousCount === "number" && currentCount > previousCount) {
-                new_section_available.push(course);
+                const previousSet = new Set(previousSections);
+                currentSections.forEach(section => {
+                    if (!previousSet.has(section)) {
+                        newSectionCodes.push(`${course}.${section}`);
+                    }
+                });
             }
 
-            // Always refresh baseline with latest data for next run
             updatedCounts[course] = currentCount;
+            updatedSnapshots[course] = currentSections;
         }
 
-        if (new_section_available.length > 0) {
-            let output = "NEW SECTION AVAILABLE: ";
-            new_section_available.forEach(each_course => {
-                output += each_course + " ";
-            });
-            alert(`${output}`);
-            console.log(`${output}`);
+        if (hasBaseline && newSectionCodes.length > 0) {
+            const output = `New Section Alert: ${newSectionCodes.join(", ")}`;
+            alert(output);
+            console.log(output);
         }
 
         await chrome.storage.local.set({
-            courseSectionCounts: updatedCounts
+            courseSectionCounts: updatedCounts,
+            courseSectionSnapshots: updatedSnapshots
         });
     }
+
     console.log("Automation is ENABLED. Starting selection...");
 
-    let seat_output = `SEAT AVAILABLE: `
-    // 1. Iterate Priorities
+    const seatAvailableMatches = [];
+
     for (const item of priorities) {
         const courseName = item.name.toUpperCase();
         let courseAdded = false;
+        const isAutoSaveEnabled = Boolean(autoSave);
 
-        // 2a. Iterate Sections in Order
         for (const section of item.sections) {
-
-            // 2b. If the target section is already in advSlip that means it's already added
             const fullCode = `${courseName}.${section}`;
             if (registeredSet.has(fullCode)) {
-                console.log(`${fullCode} Found in advSlip. Skipping ${courseName}.`);
-                courseAdded = true;
+                if (isAutoSaveEnabled) {
+                    console.log(`${fullCode} Found in advSlip. Skipping ${courseName}.`);
+                    courseAdded = true;
+                } else {
+                    console.log(`${fullCode} Found in advSlip. Stopping checks for ${courseName}.`);
+                }
                 break;
             }
 
-            //Otherwise Check the offered course list tables 
             const target = availableMap[courseName]?.[section];
 
             if (!target) {
-                console.log(`${fullCode} not found`)
-                // Section not found in offer list, skip silently
+                console.log(`${fullCode} not found`);
                 continue;
             }
 
-            // 2c. Check Availability
             if (target.occupied < target.total) {
-                // SEAT AVAILABLE
-                if(autoSave){
-                    console.log(`Seat Available for ${courseName}.${section}`)
-                    seat_output += courseName +'.' +section+' '
+                if (isAutoSaveEnabled) {
+                    console.log(`Seat Available for ${courseName}.${section}`);
                     console.log(`Adding ${courseName}.${section}...`);
-                    await humanDelay(300, 1200)
-                    target.element.click(); // Click action
+                    await humanDelay(300, 1200);
+                    target.element.click();
                     courseAdded = true;
-                    break; // Stop checking other sections for this course
-                }
-                else{
-                    if(!cseLabPattern.test(`${courseName}`)){
-                        seat_output += courseName +'.' +section+' '
-                        console.log(`Seat Available for ${courseName}.${section}`)
+                    break;
+                } else {
+                    if (!cseLabPattern.test(`${courseName}`)) {
+                        seatAvailableMatches.push(`${courseName}.${section}`);
+                        console.log(`Seat Available for ${courseName}.${section}`);
                     }
-                    
                 }
-                
             } else {
-                // Section full, proceed to next section in priority
-                console.log(`${fullCode} seat not available`)
+                console.log(`${fullCode} seat not available`);
             }
         }
+
         if (courseAdded) {
             completedCourses.push(courseName);
         }
     }
 
-    have_seat_update = !(seat_output==='SEAT AVAILABLE: ')
-    if(!autoSave&&have_seat_update)    alert(seat_output)
+    const haveSeatUpdate = seatAvailableMatches.length > 0;
+    if (!autoSave && haveSeatUpdate) {
+        alert(`SEAT AVAILABLE: ${seatAvailableMatches.join(", ")}`);
+    }
 
-    // 3. Update Storage with Completed List (for Popup UI Checkmarks)
     await chrome.storage.local.set({ completedCourses: completedCourses });
 
-
-    if(!autoSave||!have_seat_update){
-        // setTimeout(() => {
-        //     location.reload(); 
-        // }, 500);
-    }
-    else{
+    if (!autoSave || !haveSeatUpdate) {
+        // no-op
+    } else {
         if (submitBtn) {
             console.log("Submitting...");
-    
             submitBtn.click();
-            
-            // Reload after click as per instructions
-            // We use a micro-delay to ensure the click event registers before reload kills the script
-            // setTimeout(() => {
-            //     location.reload(); 
-            // }, 500); 
-        }
-        else{
-            console.log("No submit Button found")
+        } else {
+            console.log("No submit Button found");
         }
     }
-
 }
 
 runAutomation();
-
