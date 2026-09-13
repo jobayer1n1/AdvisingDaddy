@@ -164,25 +164,33 @@ button:hover {
     background: transparent;
     color: var(--accent-blue);
     border: 1px solid var(--accent-blue);
-    padding: 2px 8px;
-    font-size: 0.9em;
-    line-height: 1.2;
+    padding: 3px 6px;
+    font-size: 0.85em;
+    line-height: 1;
+    border-radius: 4px;
     box-shadow: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .edit-btn:hover {
-    background: transparent;
+    background: rgba(145, 198, 188, 0.12);
     box-shadow: 0 0 8px var(--accent-blue-soft);
 }
 
 .edit-btn.save-mode {
-    padding: 2px 10px;
+    padding: 3px 10px;
+    font-weight: 600;
 }
 
-.edit-icon {
-    display: inline-block;
-    transform: rotate(270deg);
-    color: #222;
+.edit-btn svg {
+    display: block;
+    width: 12px;
+    height: 12px;
+    stroke: currentColor;
 }
 
 .edit-panel {
