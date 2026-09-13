@@ -106,6 +106,18 @@ button:hover {
     background-color: #a71d2a;
 }
 
+.secondary-btn {
+    background-color: #eaf2ff;
+    color: #1f4d8f;
+    border: 1px solid #bfd6ff;
+    width: 100%;
+    display: none;
+}
+
+.secondary-btn:hover {
+    background-color: #dfeeff;
+}
+
 /* =========================
    COURSE LIST
 ========================= */

@@ -6,6 +6,9 @@ const ext = typeof browser !== "undefined" ? browser : chrome;
 const SLIP_ID = "advSlip";
 const COURSE_TABLE_ID = "courseList";
 const cseLabPattern = /^CSE\d+L$/;
+const OFFERED_COURSE_TABLE_SELECTOR = "#offeredCourseTbl tbody tr";
+const OFFERED_COURSE_SAVE_KEY = "offeredCourses";
+const OFFERED_COURSE_META_KEY = "offeredCourseMeta";
 
 /**
  * Parses "40(40)" into { occupied: 40, total: 40 }
@@ -156,6 +159,142 @@ function getCurrentSectionsByCourse() {
     });
 
     return byCourse;
+}
+
+function parseDayFromTime(timeText) {
+    const value = (timeText || "").trim();
+    const match = value.match(/^([A-Za-z]+)\s+/);
+    return match ? match[1].toUpperCase() : "";
+}
+
+function to24HourTimeString(timeString) {
+    const str = (timeString || "").trim();
+    const directMatch = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (directMatch) {
+        const pad = (num) => String(num).padStart(2, "0");
+        return `${pad(directMatch[1])}:${pad(directMatch[2])}:${pad(directMatch[3] ? directMatch[3] : 0)}`;
+    }
+
+    const match = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
+    if (!match) return null;
+
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const seconds = match[3] ? Number(match[3]) : 0;
+    const period = match[4].toUpperCase();
+
+    if (period === "AM" && hours === 12) hours = 0;
+    if (period === "PM" && hours !== 12) hours += 12;
+
+    const pad = (num) => String(num).padStart(2, "0");
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+function parseTimeRange(timeText) {
+    const value = (timeText || "").trim();
+    const withoutDay = value.replace(/^[A-Za-z]+\s+/, "").trim();
+    const match = withoutDay.match(/^(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)\s*-\s*(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)$/i);
+    if (!match) return [];
+
+    let startStr = match[1].trim();
+    const endStr = match[2].trim();
+
+    if (!/AM|PM/i.test(startStr) && /AM|PM/i.test(endStr)) {
+        const endPeriod = /AM|PM/i.exec(endStr)?.[0] || "AM";
+        startStr += ` ${endPeriod}`;
+    }
+
+    const start = to24HourTimeString(startStr);
+    const end = to24HourTimeString(endStr);
+    if (!start || !end) return [];
+    return [start, end];
+}
+
+function extractOfferedCourseRows() {
+    const rows = Array.from(document.querySelectorAll(OFFERED_COURSE_TABLE_SELECTOR));
+    if (!rows.length) return [];
+
+    return rows
+        .map((row) => {
+            const cells = Array.from(row.querySelectorAll("td"));
+            if (cells.length < 7) return null;
+
+            const serial = (cells[0]?.innerText || "").trim();
+            const course = (cells[1]?.innerText || "").trim();
+            const section = (cells[2]?.innerText || "").trim();
+            const faculty = (cells[3]?.innerText || "").trim();
+            const rawTime = (cells[4]?.innerText || "").trim();
+            const room = (cells[5]?.innerText || "").trim();
+            const seatsAvailable = (cells[6]?.innerText || "").trim();
+            const day = parseDayFromTime(rawTime);
+            const time = parseTimeRange(rawTime);
+
+            if (!course || !section) return null;
+
+            return {
+                serial,
+                course,
+                section,
+                faculty,
+                room,
+                day,
+                time,
+                seatsAvailable
+            };
+        })
+        .filter(Boolean);
+}
+
+function addOfferedCourseSaveButton() {
+    if (!window.location.href.includes("offered_courses")) return;
+
+    const filterContainer = document.querySelector(".dataTables_filter");
+    if (!filterContainer || document.getElementById("offeredCourseSaveButton")) return;
+
+    const saveBtn = document.createElement("button");
+    saveBtn.id = "offeredCourseSaveButton";
+    saveBtn.type = "button";
+    saveBtn.title = "Save Course List";
+    saveBtn.setAttribute("aria-label", "Save Course List");
+    saveBtn.innerHTML = "<span aria-hidden=\"true\">💾</span>";
+    saveBtn.style.marginRight = "10px";
+    saveBtn.style.padding = "6px 10px";
+    saveBtn.style.border = "1px solid #d0d7de";
+    saveBtn.style.borderRadius = "6px";
+    saveBtn.style.background = "#ffffff";
+    saveBtn.style.color = "#1f2328";
+    saveBtn.style.cursor = "pointer";
+    saveBtn.style.fontSize = "14px";
+    saveBtn.style.fontWeight = "600";
+
+    saveBtn.addEventListener("click", async () => {
+        const rows = extractOfferedCourseRows();
+        const payload = {
+            source: "north-south-university-offered-courses",
+            savedAt: new Date().toISOString(),
+            courseCount: rows.length,
+            courses: rows
+        };
+
+        await ext.storage.local.set({
+            [OFFERED_COURSE_SAVE_KEY]: rows,
+            [OFFERED_COURSE_META_KEY]: {
+                source: payload.source,
+                savedAt: payload.savedAt,
+                courseCount: payload.courseCount
+            }
+        });
+
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = "✓ Saved";
+        saveBtn.disabled = true;
+        setTimeout(() => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }, 1200);
+    });
+
+    filterContainer.prepend(saveBtn);
 }
 
 
@@ -311,5 +450,13 @@ async function runAutomation() {
     }
 }
 
-runAutomation();
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
+        addOfferedCourseSaveButton();
+        runAutomation();
+    }, { once: true });
+} else {
+    addOfferedCourseSaveButton();
+    runAutomation();
+}
 

@@ -23,7 +23,8 @@
     "activeTab"
   ],
   "host_permissions": [
-    "https://rds3.northsouth.edu/*"
+    "https://rds3.northsouth.edu/*",
+    "https://rds4.northsouth.ac.bd/*"
   ],
   "icons":{
       "16": "images/icon16.png",
@@ -40,7 +41,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://rds3.northsouth.edu/students/advising*"],
+      "matches": [
+        "https://rds3.northsouth.edu/students/advising*",
+        "https://rds4.northsouth.ac.bd/offered_courses*"
+      ],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
