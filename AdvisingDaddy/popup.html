@@ -11,31 +11,43 @@
         <h2 class="popup-title">Operation Controller</h2>
         <div class="master-control">
             <label class="switch">
-                <input type="checkbox" id="masterToggle">
+                <input type="checkbox" id="injectMetaToggle">
                 <span class="slider"></span>
             </label>
-            <strong id="statusLabel">Addon Service Disabled</strong>
+            <button id="viewMetaBtn" class="icon-btn" title="View saved metadata" aria-label="View saved metadata" style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+            <strong id="injectMetaText">Inject Metadata Disabled <span class="domain-tag">[all]</span></strong>
         </div>
         <div class="master-control">
             <label class="switch">
-                <input type="checkbox" id="alertStatusToggle">
+                <input type="checkbox" id="seatAlertToggle">
                 <span class="slider"></span>
             </label>
-            <strong id="alertStatusText">New Section Alert Disabled</strong>
+            <strong id="seatAlertText">Seat Alert Disabled <span class="domain-tag">[queued]</span></strong>
         </div>
         <div class="master-control">
             <label class="switch">
                 <input type="checkbox" id="autoSaveToggle">
                 <span class="slider"></span>
             </label>
-            <strong id="autoSaveText">Auto Save Disabled</strong>
-        </div>         
+            <strong id="autoSaveText">Auto Save Disabled <span class="domain-tag">[queued]</span></strong>
+        </div>
+        <div class="master-control">
+            <label class="switch">
+                <input type="checkbox" id="alertStatusToggle">
+                <span class="slider"></span>
+            </label>
+            <strong id="alertStatusText">New Section Alert Disabled <span class="domain-tag">[queued]</span></strong>
+        </div>
         <hr>
         <div class="input-group">
             <input type="text" id="courseInput" placeholder="Course (e.g., BIO103)">
             <input type="text" id="sectionInput" placeholder="Sections (e.g., 1,2,3)">
             <button id="addBtn">Add Course to the Queue</button>
-            <button id="courseListBtn" class="secondary-btn" type="button" aria-hidden="true">Course List</button>
         </div>
 
         <hr>

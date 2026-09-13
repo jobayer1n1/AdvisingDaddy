@@ -6,74 +6,70 @@ document.addEventListener('DOMContentLoaded', async () => {
     const addBtn = document.getElementById('addBtn');
     const priorityList = document.getElementById('priorityList');
     const clearBtn = document.getElementById('clearStorage');
-    const masterToggle = document.getElementById('masterToggle');
-    const statusLabel = document.getElementById('statusLabel');
     const alertStatusToggle = document.getElementById("alertStatusToggle");
     const alertStatusText = document.getElementById("alertStatusText");
     const autoSaveToggle = document.getElementById("autoSaveToggle")
     const autoSaveText = document.getElementById("autoSaveText")
-    const courseListBtn = document.getElementById("courseListBtn")
-
-    function updateCourseListButton() {
-        return ext.storage.local.get(["offeredCourses", "offeredCourseMeta"]).then(({ offeredCourses, offeredCourseMeta }) => {
-            const hasCourses = Array.isArray(offeredCourses) && offeredCourses.length > 0;
-            if (!courseListBtn) return;
-
-            courseListBtn.style.display = hasCourses ? "inline-flex" : "none";
-            if (!hasCourses) {
-                courseListBtn.setAttribute("aria-hidden", "true");
-                return;
-            }
-
-            courseListBtn.setAttribute("aria-hidden", "false");
-            if (offeredCourseMeta && offeredCourseMeta.savedAt) {
-                courseListBtn.title = `Download saved course list (${offeredCourseMeta.courseCount} courses)`;
-            }
-        });
-    }
+    const seatAlertToggle = document.getElementById("seatAlertToggle")
+    const seatAlertText = document.getElementById("seatAlertText")
+    const injectMetaToggle = document.getElementById("injectMetaToggle")
+    const injectMetaText = document.getElementById("injectMetaText")
+    const viewMetaBtn = document.getElementById("viewMetaBtn")
 
     // --- Toggle Logic ---
 
-    function updateLabel(isEnabled) {
-        statusLabel.innerText = isEnabled ? "Addon Service Enabled" : "Addon Service Disabled";
-        statusLabel.style.color = isEnabled ? "#91C6BC" : "#dc3545";
-    }
     function updateAlertStatusLabel(isEnabled) {
-        alertStatusText.innerText = isEnabled
-            ? "New Section Alert Enabled"
-            : "New Section Alert Disabled";
+        alertStatusText.innerHTML = (isEnabled ? "New Section Alert Enabled" : "New Section Alert Disabled") +
+            ' <span class="domain-tag">[queued]</span>';
 
         alertStatusText.style.color = isEnabled ? "#91C6BC" : "#ffffffff";
     }
     function updateAutoSaveLabel(isEnabled) {
-        autoSaveText.innerText = isEnabled
-            ? "Auto Save Enabled"
-            : "Auto Save Disabled";
+        autoSaveText.innerHTML = (isEnabled ? "Auto Save Enabled" : "Auto Save Disabled") +
+            ' <span class="domain-tag">[queued]</span>';
 
         autoSaveText.style.color = isEnabled ? "#91C6BC" : "#ffffffff";
+    }
+    function updateSeatAlertLabel(isEnabled) {
+        seatAlertText.innerHTML = (isEnabled ? "Seat Alert Enabled" : "Seat Alert Disabled") +
+            ' <span class="domain-tag">[queued]</span>';
+
+        seatAlertText.style.color = isEnabled ? "#91C6BC" : "#ffffffff";
+    }
+    function updateInjectMetaLabel(isEnabled, hasMetadata) {
+        if (!hasMetadata) {
+            injectMetaText.innerHTML = 'Inject Metadata (No data saved) <span class="domain-tag">[all]</span>';
+            injectMetaText.style.color = "#9aa3ad";
+            injectMetaToggle.disabled = true;
+            injectMetaToggle.checked = false;
+            if (viewMetaBtn) viewMetaBtn.style.display = "none";
+        } else {
+            injectMetaText.innerHTML = (isEnabled ? "Inject Metadata Enabled" : "Inject Metadata Disabled") +
+                ' <span class="domain-tag">[all]</span>';
+            injectMetaText.style.color = isEnabled ? "#91C6BC" : "#ffffffff";
+            injectMetaToggle.disabled = false;
+            if (viewMetaBtn) viewMetaBtn.style.display = "inline-flex";
+        }
     }
 
     // Load Toggle States
     const res = await ext.storage.local.get(
-        ['ControllerEnabled', 'alertOnNewSection', 'autoSave']
+        ['alertOnNewSection', 'autoSave', 'seatAlert', 'injectMetadata', 'offeredCourses']
     );
-    masterToggle.checked = res.ControllerEnabled || false;
     const alertEnabled = res.alertOnNewSection || false;
     const autoSaveEnabled = res.autoSave || false;
+    const seatAlertEnabled = res.seatAlert || false;
     alertStatusToggle.checked = alertEnabled;
     autoSaveToggle.checked = autoSaveEnabled;
+    seatAlertToggle.checked = seatAlertEnabled;
     updateAlertStatusLabel(alertEnabled);
-    updateLabel(masterToggle.checked);
     updateAutoSaveLabel(autoSaveEnabled);
-    await updateCourseListButton();
+    updateSeatAlertLabel(seatAlertEnabled);
 
-
-
-    masterToggle.addEventListener('change', () => {
-        const isEnabled = masterToggle.checked;
-        ext.storage.local.set({ ControllerEnabled: isEnabled });
-        updateLabel(isEnabled);
-    });
+    const hasMetadata = Array.isArray(res.offeredCourses) && res.offeredCourses.length > 0;
+    const injectMetaEnabled = hasMetadata ? (res.injectMetadata || false) : false;
+    injectMetaToggle.checked = injectMetaEnabled;
+    updateInjectMetaLabel(injectMetaEnabled, hasMetadata);
 
     if (alertStatusToggle) {
         alertStatusToggle.addEventListener('change', () => {
@@ -98,36 +94,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    if (seatAlertToggle) {
+        seatAlertToggle.addEventListener('change', () => {
+            const isEnabled = seatAlertToggle.checked;
+            ext.storage.local.set({ seatAlert: isEnabled });
+            updateSeatAlertLabel(isEnabled);
+        });
+    }
+
+    if (injectMetaToggle) {
+        injectMetaToggle.addEventListener('change', () => {
+            const isEnabled = injectMetaToggle.checked;
+            ext.storage.local.set({ injectMetadata: isEnabled });
+            updateInjectMetaLabel(isEnabled, true);
+        });
+    }
+
+    if (viewMetaBtn) {
+        viewMetaBtn.addEventListener('click', () => {
+            ext.tabs.create({ url: ext.runtime.getURL('templates/view_saved_course_metadatas.html') });
+        });
+    }
+
 
     // --- Course List Logic ---
 
     renderList();
-
-    if (courseListBtn) {
-        courseListBtn.addEventListener('click', async () => {
-            const { offeredCourses } = await ext.storage.local.get('offeredCourses');
-            if (!Array.isArray(offeredCourses) || offeredCourses.length === 0) {
-                courseListBtn.style.display = 'none';
-                return;
-            }
-
-            const payload = JSON.stringify({
-                savedAt: new Date().toISOString(),
-                courseCount: offeredCourses.length,
-                courses: offeredCourses
-            }, null, 2);
-
-            const blob = new Blob([payload], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = 'offered-courses.json';
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-            URL.revokeObjectURL(url);
-        });
-    }
 
     addBtn.addEventListener('click', async () => {
         const course = courseInput.value.trim().toUpperCase();

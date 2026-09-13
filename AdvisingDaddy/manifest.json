@@ -20,11 +20,14 @@
   },
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "host_permissions": [
     "https://rds3.northsouth.edu/*",
-    "https://rds4.northsouth.ac.bd/*"
+    "https://rds4.northsouth.ac.bd/*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
   ],
   "icons":{
       "16": "images/icon16.png",
@@ -43,10 +46,27 @@
     {
       "matches": [
         "https://rds3.northsouth.edu/students/advising*",
-        "https://rds4.northsouth.ac.bd/offered_courses*"
+        "https://rds4.northsouth.ac.bd/offered_courses*",
+        "http://localhost:8000/*",
+        "http://127.0.0.1:8000/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "scripts/*.js",
+        "templates/*.html",
+        "templates/*.js"
+      ],
+      "matches": [
+        "https://rds3.northsouth.edu/*",
+        "https://rds4.northsouth.ac.bd/*",
+        "http://localhost:8000/*",
+        "http://127.0.0.1:8000/*"
+      ]
     }
   ]
 }

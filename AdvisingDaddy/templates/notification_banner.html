@@ -1,0 +1,144 @@
+<!-- AdvisingDaddy In-page Floating Notification Banner & Toast Template -->
+<style id="advdaddy-notification-styles">
+.advdaddy-toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 2147483647; /* Ensure it stays above university portal elements */
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+    max-width: 400px;
+    width: calc(100vw - 48px);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.advdaddy-toast {
+    pointer-events: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: rgba(18, 25, 32, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #f1f4f8;
+    border: 1px solid #2b3a4a;
+    border-left: 4px solid var(--toast-accent, #91C6BC);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    transform: translateX(120%);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+}
+
+.advdaddy-toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.advdaddy-toast.hide {
+    transform: translateX(120%);
+    opacity: 0;
+}
+
+.advdaddy-toast-content {
+    display: flex;
+    align-items: flex-start;
+    padding: 14px 16px;
+    gap: 12px;
+}
+
+.advdaddy-toast-icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    color: var(--toast-accent, #91C6BC);
+    margin-top: 1px;
+}
+
+.advdaddy-toast-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.advdaddy-toast-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.advdaddy-toast-title {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.3;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.advdaddy-toast-message {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #cbd5e1;
+    word-break: break-word;
+}
+
+.advdaddy-toast-close {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 16px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.advdaddy-toast-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.advdaddy-toast-progress {
+    height: 3px;
+    background: var(--toast-accent, #91C6BC);
+    width: 100%;
+    transform-origin: left;
+    transition: width linear;
+}
+
+/* Variant Accents */
+.advdaddy-toast--info {
+    --toast-accent: #91C6BC;
+}
+
+.advdaddy-toast--success {
+    --toast-accent: #22c55e;
+}
+
+.advdaddy-toast--warning {
+    --toast-accent: #f59e0b;
+}
+
+.advdaddy-toast--danger {
+    --toast-accent: #ef4444;
+}
+</style>
+
+<div class="advdaddy-toast-container" id="advdaddyToastContainer"></div>
+
+<template id="advdaddyToastTemplate">
+    <div class="advdaddy-toast" role="alert">
+        <div class="advdaddy-toast-content">
+            <div class="advdaddy-toast-icon"></div>
+            <div class="advdaddy-toast-body">
+                <div class="advdaddy-toast-title"></div>
+                <div class="advdaddy-toast-message"></div>
+            </div>
+            <button type="button" class="advdaddy-toast-close" title="Dismiss notification" aria-label="Dismiss notification">✕</button>
+        </div>
+        <div class="advdaddy-toast-progress"></div>
+    </div>
+</template>
