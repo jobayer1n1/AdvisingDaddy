@@ -205,6 +205,41 @@ button:hover {
 }
 
 /* =========================
+   STATUS BADGES
+========================= */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    margin-left: 5px;
+    background: transparent;
+    border: none;
+    line-height: 1;
+}
+
+.status-badge svg {
+    display: block;
+    width: 14px;
+    height: 14px;
+}
+
+.status-badge--done {
+    color: #237b6c;
+}
+
+.status-badge--pending {
+    color: #b37318;
+}
+
+.domain-tag {
+    font-size: 0.78em;
+    font-weight: 600;
+    opacity: 0.75;
+    letter-spacing: 0.2px;
+}
+
+/* =========================
    REMOVE BUTTON (❌)
 ========================= */
 .remove-btn {
@@ -556,6 +591,16 @@ body.dark .sections {
 
 body.dark .empty-state {
     color: var(--text-muted);
+}
+
+body.dark .status-badge--done {
+    color: var(--accent-blue);
+    filter: drop-shadow(0 0 3px var(--accent-blue-soft));
+}
+
+body.dark .status-badge--pending {
+    color: #f3ba63;
+    filter: drop-shadow(0 0 3px rgba(243, 186, 99, 0.4));
 }
 
 body.dark .master-control {

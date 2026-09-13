@@ -1,17 +1,17 @@
-<!-- AdvisingDaddy In-page Floating Notification Banner & Toast Template -->
+<!-- AdvisingDaddy Gamified Floating HUD Notification Banner & Toast Template -->
 <style id="advdaddy-notification-styles">
 .advdaddy-toast-container {
     position: fixed;
-    top: 24px;
-    right: 24px;
+    top: 20px;
+    right: 20px;
     z-index: 2147483647; /* Ensure it stays above university portal elements */
     display: flex;
     flex-direction: column;
     gap: 12px;
     pointer-events: none;
-    max-width: 400px;
-    width: calc(100vw - 48px);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 390px;
+    width: calc(100vw - 40px);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
 }
 
 .advdaddy-toast {
@@ -19,41 +19,93 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    background: rgba(18, 25, 32, 0.95);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: #141922;
     color: #f1f4f8;
-    border: 1px solid #2b3a4a;
-    border-left: 4px solid var(--toast-accent, #91C6BC);
+    border: 1px solid #283344;
     border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     transform: translateX(120%);
     opacity: 0;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
+}
+
+/* Snappy spring slide-in entry animation */
+@keyframes advdaddySlideIn {
+    0% {
+        transform: translateX(115%);
+        opacity: 0;
+    }
+    75% {
+        transform: translateX(-4px);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 .advdaddy-toast.show {
-    transform: translateX(0);
-    opacity: 1;
+    animation: advdaddySlideIn 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .advdaddy-toast.hide {
     transform: translateX(120%);
     opacity: 0;
+    transition: transform 0.28s ease, opacity 0.28s ease;
 }
 
+/* Gamified HUD Top Bar */
+.advdaddy-toast-hud {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px 6px 14px;
+    background: rgba(0, 0, 0, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.advdaddy-toast-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--toast-accent, #91C6BC);
+}
+
+.advdaddy-toast-close {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 13px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+.advdaddy-toast-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+    transform: scale(1.1);
+}
+
+/* Content Area */
 .advdaddy-toast-content {
     display: flex;
     align-items: flex-start;
-    padding: 14px 16px;
+    padding: 12px 14px 14px 14px;
     gap: 12px;
 }
 
 .advdaddy-toast-icon {
     flex-shrink: 0;
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     color: var(--toast-accent, #91C6BC);
     margin-top: 1px;
 }
@@ -69,44 +121,47 @@
 }
 
 .advdaddy-toast-title {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 14px;
     line-height: 1.3;
     color: #ffffff;
+    letter-spacing: 0.2px;
     margin-bottom: 4px;
 }
 
 .advdaddy-toast-message {
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 1.45;
     color: #cbd5e1;
     word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-.advdaddy-toast-close {
-    flex-shrink: 0;
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 2px 6px;
-    font-size: 16px;
-    line-height: 1;
-    border-radius: 4px;
-    transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-.advdaddy-toast-close:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.12);
+/* Time Left Bar */
+.advdaddy-toast-track {
+    position: relative;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.16);
+    width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .advdaddy-toast-progress {
-    height: 3px;
-    background: var(--toast-accent, #91C6BC);
+    display: block;
+    height: 100%;
     width: 100%;
+    background-color: var(--toast-accent, #91C6BC);
     transform-origin: left;
-    transition: width linear;
+}
+
+@keyframes advdaddyDrain {
+    0% {
+        width: 100%;
+    }
+    100% {
+        width: 0%;
+    }
 }
 
 /* Variant Accents */
@@ -115,7 +170,7 @@
 }
 
 .advdaddy-toast--success {
-    --toast-accent: #22c55e;
+    --toast-accent: #10b981;
 }
 
 .advdaddy-toast--warning {
@@ -131,14 +186,21 @@
 
 <template id="advdaddyToastTemplate">
     <div class="advdaddy-toast" role="alert">
+        <div class="advdaddy-toast-hud">
+            <div class="advdaddy-toast-badge">
+                <span class="advdaddy-toast-badge-text">SYSTEM ALERT</span>
+            </div>
+            <button type="button" class="advdaddy-toast-close" title="Dismiss notification" aria-label="Dismiss notification">✕</button>
+        </div>
         <div class="advdaddy-toast-content">
             <div class="advdaddy-toast-icon"></div>
             <div class="advdaddy-toast-body">
                 <div class="advdaddy-toast-title"></div>
                 <div class="advdaddy-toast-message"></div>
             </div>
-            <button type="button" class="advdaddy-toast-close" title="Dismiss notification" aria-label="Dismiss notification">✕</button>
         </div>
-        <div class="advdaddy-toast-progress"></div>
+        <div class="advdaddy-toast-track" title="Time remaining">
+            <div class="advdaddy-toast-progress"></div>
+        </div>
     </div>
 </template>

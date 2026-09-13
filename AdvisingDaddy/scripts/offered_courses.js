@@ -41,65 +41,38 @@ export function parseRowsFromElements(rows) {
 
 export function extractFromDataTableApi() {
     return new Promise((resolve) => {
-        const eventId = "AA_OFFERED_DATA_" + Math.random().toString(36).slice(2);
+        const requestId = "aa_dt_" + Date.now() + "_" + Math.random().toString(36).slice(2);
         const timer = setTimeout(() => {
-            window.removeEventListener(eventId, handler);
+            window.removeEventListener("ADVISING_DADDY_DATATABLE_RESPONSE", handler);
             resolve(null);
         }, 1500);
 
         function handler(e) {
-            clearTimeout(timer);
-            window.removeEventListener(eventId, handler);
-            resolve(e.detail);
+            if (e.detail && e.detail.requestId === requestId) {
+                clearTimeout(timer);
+                window.removeEventListener("ADVISING_DADDY_DATATABLE_RESPONSE", handler);
+                resolve(e.detail.data);
+            }
         }
-        window.addEventListener(eventId, handler);
+        window.addEventListener("ADVISING_DADDY_DATATABLE_RESPONSE", handler);
 
-        const script = document.createElement("script");
-        script.textContent = `
-            (function() {
-                try {
-                    var $tbl = window.jQuery ? window.jQuery('#offeredCourseTbl') : null;
-                    if ($tbl && $tbl.length && window.jQuery.fn && window.jQuery.fn.DataTable && window.jQuery.fn.DataTable.isDataTable($tbl)) {
-                        var dt = $tbl.DataTable();
-                        var allRows = [];
-                        var dataArray = dt.rows().data();
-
-                        function strip(html) {
-                            if (html == null) return '';
-                            if (typeof html !== 'string') return String(html).trim();
-                            var tmp = document.createElement('div');
-                            tmp.innerHTML = html;
-                            return (tmp.textContent || tmp.innerText || '').trim();
-                        }
-
-                        for (var i = 0; i < dataArray.length; i++) {
-                            var row = dataArray[i];
-                            if (!row) continue;
-                            if (Array.isArray(row) && row.length >= 7) {
-                                allRows.push({
-                                    serial: strip(row[0]),
-                                    course: strip(row[1]),
-                                    section: strip(row[2]),
-                                    faculty: strip(row[3]),
-                                    rawTime: strip(row[4]),
-                                    room: strip(row[5]),
-                                    seatsAvailable: strip(row[6])
-                                });
-                            }
-                        }
-                        if (allRows.length > 0) {
-                            window.dispatchEvent(new CustomEvent('${eventId}', { detail: allRows }));
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.error('DataTables extraction error:', e);
-                }
-                window.dispatchEvent(new CustomEvent('${eventId}', { detail: null }));
-            })();
-        `;
-        (document.head || document.documentElement).appendChild(script);
-        script.remove();
+        try {
+            const script = document.createElement("script");
+            script.src = ext.runtime.getURL("scripts/offered_bridge.js");
+            script.dataset.requestId = requestId;
+            script.onload = () => script.remove();
+            script.onerror = () => {
+                clearTimeout(timer);
+                window.removeEventListener("ADVISING_DADDY_DATATABLE_RESPONSE", handler);
+                script.remove();
+                resolve(null);
+            };
+            (document.head || document.documentElement).appendChild(script);
+        } catch (err) {
+            clearTimeout(timer);
+            window.removeEventListener("ADVISING_DADDY_DATATABLE_RESPONSE", handler);
+            resolve(null);
+        }
     });
 }
 

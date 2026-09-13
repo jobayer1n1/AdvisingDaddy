@@ -190,8 +190,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             courseInfo.appendChild(document.createTextNode(' '));
 
             const status = document.createElement('span');
-            status.className = isDone ? 'check' : 'pending';
-            status.textContent = isDone ? '\u2705' : '\u23f3';
+            status.className = isDone ? 'status-badge status-badge--done' : 'status-badge status-badge--pending';
+            status.title = isDone ? 'Enrolled on advising slip' : 'Pending (not enrolled yet)';
+            status.innerHTML = isDone
+                ? `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
+                : `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
             courseInfo.appendChild(status);
 
             const actions = document.createElement('div');

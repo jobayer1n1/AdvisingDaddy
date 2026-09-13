@@ -16,8 +16,10 @@ let containerReadyPromise = null;
  * Ensures the notification banner styles and container are injected into the document.
  */
 export async function ensureNotificationContainer() {
-    if (document.getElementById("advdaddyToastContainer")) {
-        return document.getElementById("advdaddyToastContainer");
+    const existingContainer = document.getElementById("advdaddyToastContainer");
+    const existingStyles = document.getElementById("advdaddy-notification-styles");
+    if (existingContainer && existingStyles) {
+        return existingContainer;
     }
 
     if (!containerReadyPromise) {
@@ -98,19 +100,38 @@ export async function showNotification(options) {
         toast.className = "advdaddy-toast";
         toast.setAttribute("role", "alert");
         toast.innerHTML = `
+            <div class="advdaddy-toast-hud">
+                <div class="advdaddy-toast-badge">
+                    <span class="advdaddy-toast-badge-text">SYSTEM ALERT</span>
+                </div>
+                <button type="button" class="advdaddy-toast-close" title="Dismiss notification" aria-label="Dismiss notification">✕</button>
+            </div>
             <div class="advdaddy-toast-content">
                 <div class="advdaddy-toast-icon"></div>
                 <div class="advdaddy-toast-body">
                     <div class="advdaddy-toast-title"></div>
                     <div class="advdaddy-toast-message"></div>
                 </div>
-                <button type="button" class="advdaddy-toast-close" title="Dismiss notification">✕</button>
             </div>
-            <div class="advdaddy-toast-progress"></div>
+            <div class="advdaddy-toast-track" title="Time remaining">
+                <div class="advdaddy-toast-progress"></div>
+            </div>
         `;
     }
 
     toast.classList.add(`advdaddy-toast--${type}`);
+
+    // HUD Badge tag based on type
+    const badgeMap = {
+        success: "SEAT UNLOCKED",
+        warning: "NEW SECTION DETECTED",
+        danger: "ACTION REQUIRED",
+        info: "SYSTEM ALERT"
+    };
+    const badgeTextEl = toast.querySelector(".advdaddy-toast-badge-text");
+    if (badgeTextEl) {
+        badgeTextEl.textContent = (options && options.hudTag) || badgeMap[type] || "SYSTEM ALERT";
+    }
 
     const iconEl = toast.querySelector(".advdaddy-toast-icon");
     if (iconEl) {
@@ -125,6 +146,21 @@ export async function showNotification(options) {
 
     const closeBtn = toast.querySelector(".advdaddy-toast-close");
     const progressEl = toast.querySelector(".advdaddy-toast-progress");
+    const trackEl = toast.querySelector(".advdaddy-toast-track");
+
+    // Ensure track and progress bar are visibly framed
+    if (trackEl) {
+        trackEl.style.height = "4px";
+        trackEl.style.width = "100%";
+        trackEl.style.background = "rgba(255, 255, 255, 0.16)";
+        trackEl.style.overflow = "hidden";
+        trackEl.style.display = "block";
+    }
+    if (progressEl) {
+        progressEl.style.height = "100%";
+        progressEl.style.display = "block";
+        progressEl.style.width = "100%";
+    }
 
     let isDismissed = false;
     let dismissTimeout = null;
@@ -143,26 +179,40 @@ export async function showNotification(options) {
             if (toast.parentNode) {
                 toast.parentNode.removeChild(toast);
             }
-        }, 360);
+        }, 300);
     }
 
-    function startTimer(timeLeft) {
+    function startTimer() {
         if (progressEl) {
-            progressEl.style.transition = `width ${timeLeft}ms linear`;
-            progressEl.style.width = "0%";
+            progressEl.style.animation = `advdaddyDrain ${duration}ms linear forwards`;
+            progressEl.style.animationPlayState = "running";
         }
         startTime = Date.now();
-        dismissTimeout = setTimeout(dismiss, timeLeft);
+        remainingTime = duration;
+
+        clearTimeout(dismissTimeout);
+        dismissTimeout = setTimeout(dismiss, duration);
     }
 
     function pauseTimer() {
         clearTimeout(dismissTimeout);
         const elapsed = Date.now() - startTime;
         remainingTime = Math.max(0, remainingTime - elapsed);
+
         if (progressEl) {
-            const computedWidth = window.getComputedStyle(progressEl).width;
-            progressEl.style.transition = "none";
-            progressEl.style.width = computedWidth;
+            progressEl.style.animationPlayState = "paused";
+        }
+    }
+
+    function resumeTimer() {
+        if (isDismissed || remainingTime <= 0) return;
+        startTime = Date.now();
+
+        clearTimeout(dismissTimeout);
+        dismissTimeout = setTimeout(dismiss, remainingTime);
+
+        if (progressEl) {
+            progressEl.style.animationPlayState = "running";
         }
     }
 
@@ -173,24 +223,17 @@ export async function showNotification(options) {
         });
     }
 
-    // Pause on hover
+    // Pause on hover, resume on leave
     toast.addEventListener("mouseenter", pauseTimer);
-    toast.addEventListener("mouseleave", () => {
-        if (!isDismissed && remainingTime > 0) {
-            startTimer(remainingTime);
-        }
-    });
+    toast.addEventListener("mouseleave", resumeTimer);
 
     // Add to container (newest on top)
     container.prepend(toast);
 
-    // Trigger entrance animation
+    // Trigger entrance animation and start time left bar
     requestAnimationFrame(() => {
         toast.classList.add("show");
-        if (progressEl) {
-            progressEl.style.width = "100%";
-        }
-        startTimer(remainingTime);
+        startTimer();
     });
 
     return toast;

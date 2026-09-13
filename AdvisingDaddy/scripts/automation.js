@@ -137,14 +137,22 @@ export function getCurrentSectionsByCourse() {
 export async function runAutomation() {
     const data = await ext.storage.local.get("advisingPriorities");
     const priorities = data.advisingPriorities || [];
-    const prioritySet = new Set(priorities.map(p => (p.name || "").trim().toUpperCase()));
-    const submitBtn = getSaveButton();
     if (priorities.length === 0) return;
 
     const registeredSet = new Set(getRegisteredCourses());
-    const availableMap = getAvailableCourseMap();
-    const completedCourses = [];
 
+    // Update completedCourses status so popup UI always reflects current registered courses on the slip
+    const completedCourses = [];
+    for (const item of priorities) {
+        const cName = (item.name || "").trim().toUpperCase();
+        const isRegistered = (item.sections || []).some(s => registeredSet.has(`${cName}.${String(s).trim()}`));
+        if (isRegistered) {
+            completedCourses.push(item.name);
+        }
+    }
+    await ext.storage.local.set({ completedCourses });
+
+    // Load active automations
     const {
         alertOnNewSection,
         courseSectionCounts = {},
@@ -159,13 +167,24 @@ export async function runAutomation() {
         "seatAlert"
     ]);
 
-    const currentCounts = getCurrentSectionCounts();
-    const currentSectionsByCourse = getCurrentSectionsByCourse();
-    const updatedCounts = { ...courseSectionCounts };
-    const updatedSnapshots = { ...courseSectionSnapshots };
+    const isAutoSave = Boolean(autoSave);
+    const isSeatAlert = Boolean(seatAlert);
+    const isNewSectionAlert = Boolean(alertOnNewSection);
+
+    // If all queue automations are disabled, do not run any selection loops or print selection logs
+    if (!isAutoSave && !isSeatAlert && !isNewSectionAlert) {
+        console.log("AdvisingDaddy: All queue automations (Auto Save, Seat Alert, New Section Alert) are disabled.");
+        return;
+    }
+
+    const prioritySet = new Set(priorities.map(p => (p.name || "").trim().toUpperCase()));
 
     // NEW SECTION ALERT LOGIC
-    if (alertOnNewSection) {
+    if (isNewSectionAlert) {
+        const currentCounts = getCurrentSectionCounts();
+        const currentSectionsByCourse = getCurrentSectionsByCourse();
+        const updatedCounts = { ...courseSectionCounts };
+        const updatedSnapshots = { ...courseSectionSnapshots };
         const hasBaseline = Object.keys(courseSectionSnapshots || {}).length > 0;
         const newSectionCodes = [];
 
@@ -211,30 +230,41 @@ export async function runAutomation() {
         });
     }
 
-    console.log("Automation is ENABLED. Starting selection...");
+    // Only run seat checks and selection if Auto Save or Seat Alert is enabled
+    if (!isAutoSave && !isSeatAlert) {
+        return;
+    }
+
+    const availableMap = getAvailableCourseMap();
+    const submitBtn = getSaveButton();
+
+    if (isAutoSave) {
+        console.log("AdvisingDaddy: Auto Save is ENABLED. Starting automated course selection...");
+    } else {
+        console.log("AdvisingDaddy: Seat Alert is ENABLED. Checking seat availability...");
+    }
 
     const seatAvailableMatches = [];
     let autoSaveSelectionMade = false;
 
     for (const item of priorities) {
-        const courseName = item.name.toUpperCase();
-        let courseAdded = false;
-        const isAutoSaveEnabled = Boolean(autoSave);
+        const courseName = (item.name || "").trim().toUpperCase();
 
         for (const section of item.sections) {
-            const fullCode = `${courseName}.${section}`;
+            const sTrimmed = String(section).trim();
+            const fullCode = `${courseName}.${sTrimmed}`;
+
             if (registeredSet.has(fullCode)) {
-                if (isAutoSaveEnabled) {
+                if (isAutoSave) {
                     console.log(`${fullCode} Found in advSlip. Skipping ${courseName}.`);
-                    courseAdded = true;
                 } else {
                     console.log(`${fullCode} Found in advSlip. Stopping checks for ${courseName}.`);
                 }
                 break;
             }
 
-            const target = availableMap[courseName]?.[section] ||
-                (!isNaN(parseInt(section, 10)) ? availableMap[courseName]?.[String(parseInt(section, 10))] : null);
+            const target = availableMap[courseName]?.[sTrimmed] ||
+                (!isNaN(parseInt(sTrimmed, 10)) ? availableMap[courseName]?.[String(parseInt(sTrimmed, 10))] : null);
 
             if (!target) {
                 console.log(`${fullCode} not found`);
@@ -242,32 +272,27 @@ export async function runAutomation() {
             }
 
             if (target.occupied < target.total) {
-                if (isAutoSaveEnabled) {
-                    console.log(`Seat Available for ${courseName}.${section}`);
-                    console.log(`Adding ${courseName}.${section}...`);
+                if (isAutoSave) {
+                    console.log(`Seat Available for ${courseName}.${sTrimmed}`);
+                    console.log(`Adding ${courseName}.${sTrimmed}...`);
                     await humanDelay(300, 1200);
                     target.element.click();
                     autoSaveSelectionMade = true;
-                    courseAdded = true;
                     break;
                 } else {
                     if (!cseLabPattern.test(courseName)) {
-                        seatAvailableMatches.push(`${courseName}.${section}`);
-                        console.log(`Seat Available for ${courseName}.${section}`);
+                        seatAvailableMatches.push(`${courseName}.${sTrimmed}`);
+                        console.log(`Seat Available for ${courseName}.${sTrimmed}`);
                     }
                 }
             } else {
                 console.log(`${fullCode} seat not available`);
             }
         }
-
-        if (courseAdded) {
-            completedCourses.push(courseName);
-        }
     }
 
     const haveSeatUpdate = seatAvailableMatches.length > 0;
-    if (seatAlert && haveSeatUpdate) {
+    if (isSeatAlert && haveSeatUpdate) {
         showNotification({
             title: "Seat Available!",
             message: seatAvailableMatches.join(", "),
@@ -277,11 +302,7 @@ export async function runAutomation() {
         console.log(`SEAT AVAILABLE: ${seatAvailableMatches.join(", ")}`);
     }
 
-    await ext.storage.local.set({ completedCourses: completedCourses });
-
-    if (!autoSave || !autoSaveSelectionMade) {
-        // no-op
-    } else {
+    if (isAutoSave && autoSaveSelectionMade) {
         if (submitBtn) {
             console.log("Submitting advised courses...");
             await humanDelay(600, 1200);
