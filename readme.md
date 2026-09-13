@@ -33,12 +33,13 @@
 ## Installation Guide
 
 ### Google Chrome / Brave / Microsoft Edge
-1. Download or clone this repository to your local computer.
-2. Open your browser and navigate to `chrome://extensions`.
-3. Enable **Developer mode** using the toggle in the top-right corner.
-4. Click **Load unpacked** in the top-left.
-5. Select the `AdvisingDaddy` folder located inside this repository.
-6. The extension icon will now appear in your browser toolbar (pin it for quick access).
+1. Download `AdvisingDaddy.zip` from the latest release.
+2. Unzip it.
+3. Open your browser and navigate to `chrome://extensions`.
+4. Enable **Developer mode** using the toggle in the top-right corner.
+5. Click **Load unpacked** in the top-left.
+6. Select the `AdvisingDaddy` folder.
+7. The extension icon will now appear in your browser toolbar (pin it for quick access).
 
 ### Mozilla Firefox
 1. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
@@ -116,7 +117,7 @@ When **Inject Metadata `[all]`** is enabled, the advising page (`#courseList`) t
 2. **Real-Time Dual Search Bar:**
    - Integrated search bar positioned directly above the course table.
    - Type a course code (e.g. `CSE323`) to filter sections of that course.
-   - Type faculty initials or names (e.g. `AAA`, `Rahman`) to filter all sections taught by that instructor.
+   - Type faculty initials (e.g. `AAA`, `IQN`) to filter all sections taught by that instructor.
    - Includes quick clear button (`✕`) and live match counter.
 
 ---
