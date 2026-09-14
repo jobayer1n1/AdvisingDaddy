@@ -6,7 +6,6 @@ const ext = typeof browser !== "undefined" ? browser : (typeof chrome !== "undef
 export const OFFERED_COURSE_TABLE_SELECTOR = "#offeredCourseTbl tbody tr";
 export const OFFERED_COURSE_SAVE_KEY = "offeredCourses";
 export const OFFERED_COURSE_META_KEY = "offeredCourseMeta";
-
 export function parseRowsFromElements(rows) {
     return rows
         .map((row) => {

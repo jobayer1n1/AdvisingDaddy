@@ -124,7 +124,7 @@ When **Inject Metadata `[all]`** is enabled, the advising page (`#courseList`) t
 
 ## Saved Metadata Viewer Tab
 
-Clicking the **Eye icon (👁)** beside the Inject Metadata toggle opens the built-in offline viewer (`view_saved_course_metadatas.html`):
+Clicking the **Eye icon (👁)** beside the Inject Metadata toggle opens the built-in offline viewer (`advising_daddy.html`):
 
 - **Meta Information Bar:** Displays total course count, timestamp when data was saved, and the source page URL.
 - **Filter Field:** Instant multi-field filtering across course codes, faculty initials, days, times, and rooms.

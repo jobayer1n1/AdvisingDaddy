@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (viewMetaBtn) {
         viewMetaBtn.addEventListener('click', () => {
-            ext.tabs.create({ url: ext.runtime.getURL('templates/view_saved_course_metadatas.html') });
+            ext.tabs.create({ url: ext.runtime.getURL('templates/advising_daddy.html') });
         });
     }
 
@@ -127,6 +127,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!course || !sectionStr) {
             alert("Please fill in both fields.");
+            return;
+        }
+
+        if (course.includes('/')) {
+            alert("Please add only one course at a time. Choose either side of the slash-separated course name.");
             return;
         }
 

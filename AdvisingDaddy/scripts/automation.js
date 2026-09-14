@@ -7,6 +7,18 @@ export const SLIP_ID = "advSlip";
 export const COURSE_TABLE_ID = "courseList";
 export const cseLabPattern = /^CSE\d+L$/;
 
+function getCourseNameOptions(courseName) {
+    return (courseName || "")
+        .toUpperCase()
+        .split("/")
+        .map(name => name.trim())
+        .filter(Boolean);
+}
+
+function isCompositeCourseName(courseName) {
+    return getCourseNameOptions(courseName).length > 1;
+}
+
 export function parseSeats(seatText) {
     const regex = /^(\d+)\((\d+)\)$/;
     const match = seatText.trim().match(regex);
@@ -71,14 +83,15 @@ export function getAvailableCourseMap() {
 
         const seatData = parseSeats(tds[1].innerText);
 
-        if (!map[courseName]) map[courseName] = {};
-
         if (seatData) {
-            map[courseName][section] = {
-                element: tds[0],
-                occupied: seatData.occupied,
-                total: seatData.total
-            };
+            getCourseNameOptions(courseName).forEach(name => {
+                if (!map[name]) map[name] = {};
+                map[name][section] = {
+                    element: tds[0],
+                    occupied: seatData.occupied,
+                    total: seatData.total
+                };
+            });
         }
     });
     return map;
@@ -100,7 +113,9 @@ export function getCurrentSectionCounts() {
         if (idx === -1) return;
 
         const course = text.substring(0, idx).trim().toUpperCase();
-        counts[course] = (counts[course] || 0) + 1;
+        getCourseNameOptions(course).forEach(name => {
+            counts[name] = (counts[name] || 0) + 1;
+        });
     });
 
     return counts;
@@ -123,8 +138,10 @@ export function getCurrentSectionsByCourse() {
         const course = text.substring(0, idx).trim().toUpperCase();
         const section = text.substring(idx + 1).trim();
 
-        if (!byCourse[course]) byCourse[course] = [];
-        byCourse[course].push(section);
+        getCourseNameOptions(course).forEach(name => {
+            if (!byCourse[name]) byCourse[name] = [];
+            byCourse[name].push(section);
+        });
     });
 
     Object.keys(byCourse).forEach(course => {
@@ -145,6 +162,7 @@ export async function runAutomation() {
     const completedCourses = [];
     for (const item of priorities) {
         const cName = (item.name || "").trim().toUpperCase();
+        if (isCompositeCourseName(cName)) continue;
         const isRegistered = (item.sections || []).some(s => registeredSet.has(`${cName}.${String(s).trim()}`));
         if (isRegistered) {
             completedCourses.push(item.name);
@@ -177,7 +195,11 @@ export async function runAutomation() {
         return;
     }
 
-    const prioritySet = new Set(priorities.map(p => (p.name || "").trim().toUpperCase()));
+    const prioritySet = new Set(
+        priorities
+            .map(p => (p.name || "").trim().toUpperCase())
+            .filter(name => !isCompositeCourseName(name))
+    );
 
     // NEW SECTION ALERT LOGIC
     if (isNewSectionAlert) {
@@ -249,6 +271,10 @@ export async function runAutomation() {
 
     for (const item of priorities) {
         const courseName = (item.name || "").trim().toUpperCase();
+        if (isCompositeCourseName(courseName)) {
+            console.log(`${courseName} has multiple course options. Choose one in Advising Daddy before registering.`);
+            continue;
+        }
 
         for (const section of item.sections) {
             const sTrimmed = String(section).trim();

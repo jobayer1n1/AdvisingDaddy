@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advising Daddy</title>
+    <style>
+        :root {
+            --accent: #91C6BC;
+            --accent-soft: rgba(145, 198, 188, 0.14);
+            --accent-glow: rgba(145, 198, 188, 0.25);
+            --bg: #0f0f10;
+            --bg-soft: #17181a;
+            --bg-card: #1c1e22;
+            --bg-card2: #212326;
+            --border: #2b3138;
+            --border-soft: #222529;
+            --text: #f1f4f8;
+            --text-muted: #9aa3ad;
+            --red: #ff6161;
+            --red-soft: rgba(255, 97, 97, 0.12);
+            --amber: #f5a623;
+            --amber-soft: rgba(245, 166, 35, 0.13);
+            --green: #4ade80;
+            --green-soft: rgba(74, 222, 128, 0.13);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding: 28px 24px;
+            min-height: 100vh;
+        }
+
+        /* ── Header ─────────────────────────── */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header svg { color: var(--accent); flex-shrink: 0; }
+
+        h1 {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.01em;
+        }
+
+        .delete-btn {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: transparent;
+            border: 1px solid var(--red);
+            color: var(--red);
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .delete-btn:hover {
+            background: var(--red-soft);
+            box-shadow: 0 0 12px rgba(255, 97, 97, 0.3);
+        }
+
+        /* ── Meta bar ───────────────────────── */
+        .meta-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .meta-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 5px 13px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .meta-chip span {
+            color: var(--text);
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        /* ── Main two-column layout ─────────── */
+        .main-layout {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .table-section {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* ── Toolbar (search + sort) ─────────── */
+        .toolbar {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            margin-bottom: 12px;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 6px 12px;
+            transition: border-color 0.2s;
+        }
+        .search-bar:focus-within { border-color: var(--accent); }
+        .search-bar svg { color: var(--text-muted); flex-shrink: 0; }
+
+        #searchInput {
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 0.88rem;
+            outline: none;
+            flex: 1;
+            min-width: 0;
+        }
+        #searchInput::placeholder { color: var(--text-muted); }
+
+        .clear-search {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 0 2px;
+            line-height: 1;
+            transition: color 0.15s;
+        }
+        .clear-search:hover { color: var(--red); }
+
+        #resultCount {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        /* ── Sort strip ─────────────────────── */
+        .sort-strip {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+
+        .sort-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .sort-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 5px;
+            padding: 4px 11px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            transition: border-color 0.18s, color 0.18s, background 0.18s, box-shadow 0.18s;
+        }
+        .sort-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .sort-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-soft);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        /* ── Table ──────────────────────────── */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead th {
+            background: var(--bg-card);
+            color: var(--accent);
+            font-weight: 600;
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        thead th:last-child { text-align: center; }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border-soft);
+            transition: background 0.15s;
+        }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: rgba(255,255,255,0.03); }
+        tbody tr.in-plan { background: var(--accent-soft); }
+        tbody tr.in-plan:hover { background: rgba(145, 198, 188, 0.2); }
+
+        td {
+            padding: 7px 12px;
+            color: var(--text);
+            vertical-align: middle;
+        }
+        td.muted { color: var(--text-muted); font-size: 0.83rem; }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-radius: 4px;
+            padding: 1px 7px;
+            font-size: 0.76rem;
+            font-weight: 600;
+        }
+
+        /* ── Warning icons ───────────────────── */
+        .icon-clash, .icon-final {
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 0.8rem;
+            cursor: help;
+            vertical-align: middle;
+        }
+        .icon-clash { color: var(--red); }
+        .icon-final { color: var(--amber); }
+
+        /* ── Plan cell / add button ─────────── */
+        .plan-cell { text-align: center; }
+
+        .add-btn {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            border-radius: 5px;
+            width: 26px;
+            height: 26px;
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .add-btn:hover {
+            background: var(--accent-soft);
+            box-shadow: 0 0 8px var(--accent-glow);
+            transform: scale(1.1);
+        }
+        .add-btn:active { transform: scale(0.95); }
+
+        .added-check {
+            color: var(--accent);
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        #noResults {
+            display: none;
+            text-align: center;
+            padding: 30px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .show-more-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 12px 0 2px;
+        }
+
+        .show-more-btn {
+            display: none;
+            background: var(--bg-card);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            border-radius: 6px;
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.18s, box-shadow 0.18s;
+        }
+        .show-more-btn:hover {
+            background: var(--accent-soft);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        /* ── Plan Panel ─────────────────────── */
+        .plan-panel {
+            width: 300px;
+            flex-shrink: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            position: sticky;
+            top: 20px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .plan-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 14px 11px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 1;
+        }
+
+        .plan-title {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        .plan-title svg { color: var(--accent); flex-shrink: 0; }
+
+        .clear-plan-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 5px;
+            padding: 3px 9px;
+            font-size: 0.74rem;
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .clear-plan-btn:hover {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        #planList { padding: 6px 0; }
+
+        .plan-item {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-soft);
+            transition: background 0.15s;
+        }
+        .plan-item:last-child { border-bottom: none; }
+        .plan-item:hover { background: rgba(255,255,255,0.025); }
+
+        .plan-item-top {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+
+        .plan-course-badge {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border: 1px solid rgba(145, 198, 188, 0.3);
+            border-radius: 5px;
+            padding: 2px 9px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            flex-shrink: 0;
+        }
+
+        .plan-course-select {
+            background: var(--bg-soft);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            border-radius: 5px;
+            padding: 2px 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            outline: none;
+        }
+
+        .add-course-select {
+            background: var(--bg-soft);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            border-radius: 5px;
+            padding: 3px 8px;
+            font-size: 0.75rem;
+            outline: none;
+            max-width: 110px;
+        }
+
+        .plan-section-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .section-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1px 4px 1px 6px;
+            font-size: 0.75rem;
+            color: var(--text);
+        }
+
+        .chip-remove {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.7rem;
+            line-height: 1;
+            padding: 1px 2px;
+            border-radius: 3px;
+            transition: color 0.12s, background 0.12s;
+        }
+        .chip-remove:hover {
+            color: var(--red);
+            background: var(--red-soft);
+        }
+
+        .plan-remove-btn {
+            margin-left: auto;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 2px 5px;
+            border-radius: 4px;
+            transition: color 0.12s, background 0.12s;
+            flex-shrink: 0;
+        }
+        .plan-remove-btn:hover {
+            color: var(--red);
+            background: var(--red-soft);
+        }
+
+        .plan-item-info {
+            margin-top: 5px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .plan-empty {
+            text-align: center;
+            padding: 30px 16px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            line-height: 1.7;
+        }
+        .plan-empty strong { color: var(--accent); }
+
+        /* ── Scrollbar ───────────────────────── */
+        .plan-panel::-webkit-scrollbar { width: 5px; }
+        .plan-panel::-webkit-scrollbar-track { background: transparent; }
+        .plan-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .table-wrap::-webkit-scrollbar { height: 5px; }
+        .table-wrap::-webkit-scrollbar-track { background: transparent; }
+        .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 11l3 3L22 4"/>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+    <h1>Advising Daddy</h1>
+    <button id="deleteMetaBtn" class="delete-btn" title="Delete all saved metadata" style="display:none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/><path d="M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+        Delete data
+    </button>
+</header>
+
+<div id="app">
+    <p class="no-data">Loading…</p>
+</div>
+
+<script type="module" src="advising_daddy.js"></script>
+</body>
+</html>
