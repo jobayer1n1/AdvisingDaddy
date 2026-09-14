@@ -24,7 +24,7 @@
 - **Seat Availability Alerts:** Non-blocking notifications when prioritized sections have open seats.
 - **New Section Detection:** Automatically tracks section counts and notifies you when new sections are added for your queued courses.
 - **Course Metadata Injection:** Merges offered course information (Faculty Initials, Day, Time, Room, Seats) right into the advising portal table.
-- **Live Search by Course & Faculty:** Filter advising rows instantly by course code (e.g. `CSE323`) or faculty name/initials (e.g. `AAA`, `Rahman`).
+- **Live Search by Course & Faculty:** Filter advising rows instantly by course code (e.g. `CSE323`) or faculty initials (e.g. `AAA`, `IQN`).
 - **Saved Metadata Viewer:** Dedicated viewer tab with filterable course table, metadata timestamps, and quick data management.
 - **Non-Blocking Toasts:** Uses glassmorphic in-page floating banners instead of modal `alert()` popups, ensuring automation loops never freeze.
 
@@ -93,6 +93,7 @@ The popup's **Course Queue** allows full management of your desired courses and 
 - **Add Course:**
   - Input field 1: Course code (e.g. `CSE331`).
   - Input field 2: Comma-separated section list ordered by preference (e.g. `1, 2, 3`).
+  - Section priority left to right e.g, `CSE323 -> 1,2,3` here section 1 is the highest priority & section 3 is the lowest priority.
   - Click **Add Course to the Queue**.
 - **Status Badges:**
   - `⏳` (Pending): Course has not yet been registered.
