@@ -7,11 +7,27 @@ export const NSU_SLOTS = [
     "14:40:00", "16:20:00", "18:00:00", "19:40:00"
 ];
 
-/** Canonical day sort order for RA / ST / MW */
-export const DAY_ORDER = { RA: 0, ST: 1, MW: 2 };
+/**
+ * Canonical day sort order.
+ * Single-letter days follow the NSU week (Sat → Thu), then the
+ * two-day recurring patterns RA / ST / MW.
+ * Adjust the "R" entry below if your data uses a different code for Thursday.
+ */
+export const DAY_ORDER_LIST = ["A", "S", "M", "T", "W", "R", "RA", "ST", "MW"];
+export const DAY_ORDER = DAY_ORDER_LIST.reduce((acc, day, idx) => {
+    acc[day] = idx;
+    return acc;
+}, {});
 
 /** How many rows to show when no search query is active */
 export const DEFAULT_LIMIT = 10;
+
+// ── Small safe-string helper ─────────────────────────────────────────────────
+
+/** Coerce any value (string, number, null, undefined) to a lowercase string */
+function s(val) {
+    return String(val ?? "").toLowerCase();
+}
 
 // ── Course type ───────────────────────────────────────────────────────────────
 
@@ -65,12 +81,16 @@ export function formatTimeDisplay(timeArr) {
 // ── Search ────────────────────────────────────────────────────────────────────
 
 /**
- * Parse search query into { course, section }.
+ * Parse a single search token into { course, section }.
  *   "cse331.1" → { course: "cse331", section: "1" }
  *   "cse331"   → { course: "cse331", section: null }
+ *   "tnf"      → { course: "tnf",    section: null }
+ *   "mw"       → { course: "mw",     section: null }
+ * A token is only treated as "course.section" when it contains a dot;
+ * otherwise it's a free token matched against every field (OR).
  */
 export function parseQuery(q) {
-    const trimmed = (q || "").trim().toLowerCase();
+    const trimmed = s(q).trim();
     const dotIdx = trimmed.indexOf(".");
     if (dotIdx !== -1) {
         return {
@@ -82,29 +102,57 @@ export function parseQuery(q) {
 }
 
 /**
- * Filter a course array by a search query string.
- * Dot notation (cse331.1) filters on both course AND section.
- * Single token filters across all fields.
+ * Filter a course array by a free-form, order-independent search query.
+ *
+ * The query is split on whitespace into tokens, evaluated independently,
+ * and ANDed together — so token order never matters:
+ *   "cse332"              → course
+ *   "cse332.6"             → course AND section
+ *   "tnf"                  → faculty (or any field) match
+ *   "cse332.6 tnf"          → course+section AND faculty
+ *   "cse332.6 mw"           → course+section AND day
+ *   "cse332.6 mw tnf"       → course+section AND day AND faculty
+ *   "tnf mw cse332.6"       → same as above, any order
+ *
+ * A token containing a dot is always parsed as course.section (AND of the
+ * two). A plain token matches if it appears in ANY of course / section /
+ * faculty / day / room (OR), so free tokens like faculty initials or a day
+ * code can be dropped in anywhere in the query.
  */
 export function filterCourses(data, q) {
-    const tokens = (q || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const tokens = s(q).trim().split(/\s+/).filter(Boolean);
     if (tokens.length === 0) return data;
 
     return data.filter(c => tokens.every(token => {
         const { course, section } = parseQuery(token);
+
         if (section !== null) {
-            return (c.course || "").toLowerCase().includes(course) &&
-                (c.section || "").toLowerCase().includes(section);
+            // "course.section" style token — both parts must match.
+            const courseOk = course === "" || s(c.course).includes(course);
+            const sectionOk = section === "" || s(c.section).includes(section);
+            return courseOk && sectionOk;
         }
-        return (c.course || "").toLowerCase().includes(course) ||
-            (c.faculty || "").toLowerCase().includes(course) ||
-            (c.room || "").toLowerCase().includes(course) ||
-            (c.section || "").toLowerCase().includes(course) ||
-            (c.day || "").toLowerCase().includes(course);
+
+        // Free token — match against any searchable field.
+        return s(c.course).includes(course) ||
+            s(c.faculty).includes(course) ||
+            s(c.room).includes(course) ||
+            s(c.section).includes(course) ||
+            s(c.day).includes(course);
     }));
 }
 
 // ── Sort ──────────────────────────────────────────────────────────────────────
+
+/** Numeric-aware compare, falling back to string compare for non-numeric sections */
+function compareSection(a, b) {
+    const sa = String(a ?? "");
+    const sb = String(b ?? "");
+    const na = parseFloat(sa);
+    const nb = parseFloat(sb);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return sa.localeCompare(sb);
+}
 
 /**
  * Sort a course array by one of four modes.
@@ -114,18 +162,19 @@ export function filterCourses(data, q) {
 export function sortCourses(data, mode) {
     if (!mode) return data;
     const copy = [...data];
+
     if (mode === "section") {
-        copy.sort((a, b) => parseInt(a.section || 0) - parseInt(b.section || 0));
+        copy.sort((a, b) => compareSection(a.section, b.section));
     } else if (mode === "faculty") {
-        copy.sort((a, b) => (a.faculty || "").localeCompare(b.faculty || ""));
+        copy.sort((a, b) => s(a.faculty).localeCompare(s(b.faculty)));
     } else if (mode === "day") {
         copy.sort((a, b) => {
-            const da = DAY_ORDER[a.day] ?? 99;
-            const db = DAY_ORDER[b.day] ?? 99;
+            const da = DAY_ORDER[s(a.day).toUpperCase()] ?? Infinity;
+            const db = DAY_ORDER[s(b.day).toUpperCase()] ?? Infinity;
             return da - db;
         });
     } else if (mode === "seats") {
-        copy.sort((a, b) => parseInt(b.seatsAvailable || 0) - parseInt(a.seatsAvailable || 0));
+        copy.sort((a, b) => (parseInt(b.seatsAvailable, 10) || 0) - (parseInt(a.seatsAvailable, 10) || 0));
     }
     return copy;
 }

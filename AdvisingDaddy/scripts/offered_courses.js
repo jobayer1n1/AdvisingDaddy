@@ -6,6 +6,29 @@ const ext = typeof browser !== "undefined" ? browser : (typeof chrome !== "undef
 export const OFFERED_COURSE_TABLE_SELECTOR = "#offeredCourseTbl tbody tr";
 export const OFFERED_COURSE_SAVE_KEY = "offeredCourses";
 export const OFFERED_COURSE_META_KEY = "offeredCourseMeta";
+
+/**
+ * If a course cell contains a slash-separated pair (e.g. "CSE325/CSE425"),
+ * split it into one row per course code. Everything else on the row
+ * (section, faculty, room, day, time, seats) is duplicated.
+ *
+ * @param {object} row - a parsed course row
+ * @returns {object[]} - one row per course code
+ */
+export function expandCourseRow(row) {
+    if (!row || !row.course) return [];
+
+    const parts = row.course
+        .split("/")
+        .map((p) => p.trim())
+        .filter(Boolean);
+
+    // Common case: single course code, nothing to split.
+    if (parts.length <= 1) return [row];
+
+    return parts.map((course) => ({ ...row, course }));
+}
+
 export function parseRowsFromElements(rows) {
     return rows
         .map((row) => {
@@ -35,7 +58,8 @@ export function parseRowsFromElements(rows) {
                 seatsAvailable
             };
         })
-        .filter(Boolean);
+        .filter(Boolean)
+        .flatMap(expandCourseRow);
 }
 
 export function extractFromDataTableApi() {
@@ -92,43 +116,49 @@ export async function extractFromFetchedHtml() {
     }
 }
 
+/**
+ * Map a raw DataTables row (which carries `rawTime`) into a normalized
+ * course object. Does NOT expand slash-separated codes — callers apply
+ * `expandCourseRow` after filtering.
+ */
+function mapDtRow(r) {
+    return {
+        serial: r.serial,
+        course: r.course,
+        section: r.section,
+        faculty: r.faculty,
+        room: r.room,
+        day: parseDayFromTime(r.rawTime),
+        time: parseTimeRange(r.rawTime),
+        seatsAvailable: r.seatsAvailable
+    };
+}
+
 export async function extractAllOfferedCourseRows() {
     // 1. Try DataTables in-page API
     const dtRows = await extractFromDataTableApi();
     if (Array.isArray(dtRows) && dtRows.length > 50) {
-        return dtRows.map(r => ({
-            serial: r.serial,
-            course: r.course,
-            section: r.section,
-            faculty: r.faculty,
-            room: r.room,
-            day: parseDayFromTime(r.rawTime),
-            time: parseTimeRange(r.rawTime),
-            seatsAvailable: r.seatsAvailable
-        })).filter(c => c.course && c.section);
+        return dtRows
+            .map(mapDtRow)
+            .filter((c) => c.course && c.section)
+            .flatMap(expandCourseRow);
     }
 
     // 2. Try fetching raw HTML (same-origin, unpaginated)
     const fetchedRows = await extractFromFetchedHtml();
     if (Array.isArray(fetchedRows) && fetchedRows.length > 50) {
-        return fetchedRows;
+        return fetchedRows; // already expanded inside parseRowsFromElements
     }
 
     // If DataTables had data (even if <= 50, e.g. on test HTML)
     if (Array.isArray(dtRows) && dtRows.length > 0) {
-        return dtRows.map(r => ({
-            serial: r.serial,
-            course: r.course,
-            section: r.section,
-            faculty: r.faculty,
-            room: r.room,
-            day: parseDayFromTime(r.rawTime),
-            time: parseTimeRange(r.rawTime),
-            seatsAvailable: r.seatsAvailable
-        })).filter(c => c.course && c.section);
+        return dtRows
+            .map(mapDtRow)
+            .filter((c) => c.course && c.section)
+            .flatMap(expandCourseRow);
     }
 
-    // 3. Fallback to DOM elements
+    // 3. Fallback to DOM elements (already expanded inside parseRowsFromElements)
     const domRows = Array.from(document.querySelectorAll(OFFERED_COURSE_TABLE_SELECTOR));
     return parseRowsFromElements(domRows);
 }
@@ -140,28 +170,149 @@ export function addOfferedCourseSaveButton() {
     const filterContainer = document.querySelector(".dataTables_filter") || document.querySelector(".table-wrap");
     if (!filterContainer || document.getElementById("offeredCourseSaveButton")) return;
 
+    // Inject scoped styles once
+    if (!document.getElementById("advisingDaddySaveBtnStyles")) {
+        const style = document.createElement("style");
+        style.id = "advisingDaddySaveBtnStyles";
+        style.textContent = `
+            #offeredCourseSaveButton {
+                position: relative;
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                margin: 0 10px 10px 0;
+                padding: 7px 14px;
+                border: 1px solid #003e7e;
+                border-radius: 6px;
+                background: #003e7e;
+                color: #ffffff;
+                font-size: 13px;
+                font-weight: 600;
+                line-height: 1;
+                cursor: pointer;
+                overflow: hidden;
+                transition:
+                    background-color 0.18s ease,
+                    border-color 0.18s ease,
+                    transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    box-shadow 0.18s ease;
+                will-change: transform;
+            }
+            #offeredCourseSaveButton:hover:not(:disabled) {
+                background: #00529e;
+                border-color: #00529e;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 10px rgba(0, 62, 126, 0.25);
+            }
+            #offeredCourseSaveButton:active:not(:disabled) {
+                transform: translateY(0) scale(0.97);
+                box-shadow: 0 2px 5px rgba(0, 62, 126, 0.2);
+            }
+            #offeredCourseSaveButton:focus-visible {
+                outline: 2px solid #4c9aff;
+                outline-offset: 2px;
+            }
+            #offeredCourseSaveButton:disabled {
+                cursor: default;
+            }
+            #offeredCourseSaveButton.is-success {
+                background: #147a3a;
+                border-color: #147a3a;
+                animation: adPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+            #offeredCourseSaveButton.is-error {
+                background: #b3261e;
+                border-color: #b3261e;
+                animation: adShake 0.4s ease;
+            }
+            #offeredCourseSaveButton .ad-label {
+                display: inline-block;
+                transition: opacity 0.15s ease, transform 0.15s ease;
+            }
+            #offeredCourseSaveButton.is-loading .ad-label {
+                opacity: 0.85;
+            }
+            #offeredCourseSaveButton .ad-icon {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 14px;
+                height: 14px;
+                flex: 0 0 14px;
+            }
+            #offeredCourseSaveButton .ad-icon svg {
+                width: 100%;
+                height: 100%;
+                display: block;
+            }
+            #offeredCourseSaveButton .ad-spinner {
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                border: 2px solid rgba(255, 255, 255, 0.35);
+                border-top-color: #ffffff;
+                animation: adSpin 0.7s linear infinite;
+            }
+            @keyframes adSpin {
+                to { transform: rotate(360deg); }
+            }
+            @keyframes adPop {
+                0%   { transform: scale(0.96); }
+                60%  { transform: scale(1.04); }
+                100% { transform: scale(1); }
+            }
+            @keyframes adShake {
+                0%, 100% { transform: translateX(0); }
+                20%      { transform: translateX(-4px); }
+                40%      { transform: translateX(4px); }
+                60%      { transform: translateX(-3px); }
+                80%      { transform: translateX(3px); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                #offeredCourseSaveButton,
+                #offeredCourseSaveButton .ad-label,
+                #offeredCourseSaveButton .ad-spinner {
+                    transition: none !important;
+                    animation: none !important;
+                }
+            }
+        `;
+        (document.head || document.documentElement).appendChild(style);
+    }
+
     const saveBtn = document.createElement("button");
     saveBtn.id = "offeredCourseSaveButton";
     saveBtn.type = "button";
     saveBtn.title = "Save Course List";
     saveBtn.setAttribute("aria-label", "Save Course List");
-    saveBtn.innerHTML = "<span aria-hidden=\"true\"></span>AdvisingDaddy- Save Course Metadata";
-    saveBtn.style.marginRight = "10px";
-    saveBtn.style.marginBottom = "10px";
-    saveBtn.style.padding = "6px 12px";
-    saveBtn.style.border = "1px solid #003e7e";
-    saveBtn.style.borderRadius = "6px";
-    saveBtn.style.background = "#003e7e";
-    saveBtn.style.color = "#ffffff";
-    saveBtn.style.cursor = "pointer";
-    saveBtn.style.fontSize = "13px";
-    saveBtn.style.fontWeight = "600";
-    saveBtn.style.transition = "background-color 0.2s";
+    saveBtn.setAttribute("aria-live", "polite");
+
+    const ICONS = {
+        save: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`,
+        check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+        error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+    };
+
+    const setState = (state, label) => {
+        saveBtn.classList.remove("is-loading", "is-success", "is-error");
+        if (state === "loading") {
+            saveBtn.classList.add("is-loading");
+            saveBtn.innerHTML = `<span class="ad-icon"><span class="ad-spinner"></span></span><span class="ad-label">${label}</span>`;
+        } else {
+            const icon = state === "success" ? ICONS.check : state === "error" ? ICONS.error : ICONS.save;
+            if (state === "success") saveBtn.classList.add("is-success");
+            if (state === "error") saveBtn.classList.add("is-error");
+            saveBtn.innerHTML = `<span class="ad-icon">${icon}</span><span class="ad-label">${label}</span>`;
+        }
+    };
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    setState("idle", "Save Course Metadata");
 
     saveBtn.addEventListener("click", async () => {
-        const originalHtml = saveBtn.innerHTML;
-        saveBtn.innerHTML = "AdvisingDaddy- Saving...";
         saveBtn.disabled = true;
+        setState("loading", "Saving...");
 
         try {
             const rows = await extractAllOfferedCourseRows();
@@ -181,18 +332,19 @@ export function addOfferedCourseSaveButton() {
                 }
             });
 
-            saveBtn.innerHTML = `AdvisingDaddy- Saved (${rows.length} courses)`;
-            setTimeout(() => {
-                saveBtn.innerHTML = originalHtml;
-                saveBtn.disabled = false;
-            }, 2500);
+            // Brief pause so the spinner reads as intentional, not a flash.
+            await sleep(250);
+            setState("success", `Saved (${rows.length})`);
+            await sleep(2200);
+            setState("idle", "Save Course Metadata");
+            saveBtn.disabled = false;
         } catch (err) {
             console.error("Failed to save offered courses:", err);
-            saveBtn.innerHTML = "AdvisingDaddy- Save Failed";
-            setTimeout(() => {
-                saveBtn.innerHTML = originalHtml;
-                saveBtn.disabled = false;
-            }, 2000);
+            await sleep(150);
+            setState("error", "Save Failed");
+            await sleep(1800);
+            setState("idle", "Save Course Metadata");
+            saveBtn.disabled = false;
         }
     });
 

@@ -37,12 +37,6 @@ h2, h3 {
     gap: 10px;
 }
 
-.popup-title {
-    font-family: serif;
-    text-align: center;
-    margin-bottom: 2px;
-}
-
 .queue-title {
     font-family: serif;
     text-align: center;
@@ -631,7 +625,22 @@ body.dark hr {
     border: 0;
     border-top: 1px solid var(--border-dark);
 }
+.popup-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+}
 
+.popup-header .popup-title {
+    margin: 0;
+    grid-column: 2;
+    text-align: center;
+}
+
+.popup-header .icon-btn {
+    grid-column: 3;
+    justify-self: end;
+}
 body.dark footer {
     color: var(--text-muted);
 }

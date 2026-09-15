@@ -35,7 +35,7 @@ function renderShell(meta) {
                             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         </svg>
                         <input id="searchInput" type="text"
-                               placeholder="Search… or use cse331.1 to filter by section">
+                               placeholder="Search.. Supports Course.Section, Day, Faculty, e.g. cse215 muo st">
                         <button id="clearSearch" class="clear-search" title="Clear search">×</button>
                         <span id="resultCount">${allCourses.length} entries</span>
                     </div>
