@@ -55,23 +55,83 @@
             letter-spacing: 0.01em;
         }
 
-        .delete-btn {
+        .manage-data-dropdown {
             margin-left: auto;
+            position: relative;
+        }
+
+        .manage-btn {
             display: flex;
             align-items: center;
             gap: 7px;
             background: transparent;
-            border: 1px solid var(--red);
-            color: var(--red);
+            border: 1px solid var(--accent);
+            color: var(--accent);
             border-radius: 6px;
             padding: 6px 14px;
             font-size: 0.82rem;
             cursor: pointer;
             transition: background 0.2s, box-shadow 0.2s;
         }
-        .delete-btn:hover {
+        .manage-btn:hover {
+            background: var(--accent-soft);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+
+        .manage-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            width: max-content;
+            z-index: 100;
+            overflow: hidden;
+        }
+        
+        .manage-menu.show {
+            display: block;
+        }
+
+        .manage-menu-section {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .manage-menu-section:last-child {
+            border-bottom: none;
+        }
+        
+        .manage-menu-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .manage-menu-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            padding: 6px 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+        .manage-menu-item:hover {
+            background: var(--bg-soft);
+        }
+        .manage-menu-item.danger:hover {
             background: var(--red-soft);
-            box-shadow: 0 0 12px rgba(255, 97, 97, 0.3);
+            color: var(--red);
         }
 
         /* ── Meta bar ───────────────────────── */
@@ -525,15 +585,35 @@
         <line x1="3" y1="10" x2="21" y2="10"/>
     </svg>
     <h1>Advising Daddy</h1>
-    <button id="deleteMetaBtn" class="delete-btn" title="Delete all saved metadata" style="display:none;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-            <path d="M10 11v6"/><path d="M14 11v6"/>
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-        </svg>
-        Delete data
-    </button>
+    <div class="manage-data-dropdown" id="manageDataDropdown" style="display:none;">
+        <button id="manageDataBtn" class="manage-btn" title="Manage saved metadata and plan">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Manage Data
+        </button>
+        <div id="manageDataMenu" class="manage-menu">
+            <div class="manage-menu-section">
+                <div class="manage-menu-title">Offered Course List</div>
+                <button id="importCoursesBtn" class="manage-menu-item">Import (.json)</button>
+                <button id="downloadCoursesBtn" class="manage-menu-item">Export (.json)</button>
+                <button id="deleteCoursesBtn" class="manage-menu-item danger">Clear</button>
+            </div>
+            <div class="manage-menu-section">
+                <div class="manage-menu-title">My Plan</div>
+                <button id="importPlanBtn" class="manage-menu-item">Import (.json)</button>
+                <button id="downloadPlanBtn" class="manage-menu-item">Export (.json)</button>
+                <button id="deletePlanBtn" class="manage-menu-item danger">Clear</button>
+            </div>
+            <div class="manage-menu-section">
+                <div class="manage-menu-title">All Data</div>
+                <button id="deleteAllBtn" class="manage-menu-item danger">Clear All</button>
+            </div>
+        </div>
+        <input type="file" id="importCoursesInput" accept=".json" style="display:none;">
+        <input type="file" id="importPlanInput" accept=".json" style="display:none;">
+    </div>
 </header>
 
 <div id="app">

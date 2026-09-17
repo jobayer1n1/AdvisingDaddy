@@ -15,6 +15,9 @@ import {
     savePlan
 } from "./planner_state.js";
 import { renderPlanPanel, renderRows } from "./planner_render.js";
+import { showNotification } from "../scripts/notification.js";
+
+const SUPPORTED_VERSIONS = ["1.2"];
 
 function renderShell(meta) {
     const savedAt = meta.savedAt ? new Date(meta.savedAt).toLocaleString() : "—";
@@ -151,39 +154,209 @@ function bindPlanControls() {
     });
 }
 
-function bindDeleteMetadata(deleteMetaBtn, app) {
-    if (!deleteMetaBtn) return;
+function downloadAsJson(data, filename) {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 
-    deleteMetaBtn.addEventListener("click", async () => {
-        if (!confirm("Delete all saved course metadata? This cannot be undone.")) return;
+function bindManageData(app) {
+    const dropdown = document.getElementById("manageDataDropdown");
+    const btn = document.getElementById("manageDataBtn");
+    const menu = document.getElementById("manageDataMenu");
+    
+    if (!dropdown || !btn || !menu) return;
+
+    // Toggle menu
+    btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        menu.classList.toggle("show");
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener("click", (e) => {
+        if (!dropdown.contains(e.target)) {
+            menu.classList.remove("show");
+        }
+    });
+
+    // --- Offered Course List ---
+    document.getElementById("downloadCoursesBtn").addEventListener("click", async () => {
+        menu.classList.remove("show");
+        const stored = await ext.storage.local.get(["offeredCourses", "offeredCourseMeta"]);
+        if (stored.offeredCourses) {
+            const manifest = ext.runtime.getManifest();
+            const exportData = {
+                metadata: {
+                    ...(stored.offeredCourseMeta || {}),
+                    version: manifest.version || "1.2"
+                },
+                courses: stored.offeredCourses
+            };
+            downloadAsJson(exportData, "nsu_offered_courses.json");
+        } else {
+            alert("No offered courses found to export.");
+        }
+    });
+
+    const importCoursesBtn = document.getElementById("importCoursesBtn");
+    const importCoursesInput = document.getElementById("importCoursesInput");
+    if (importCoursesBtn && importCoursesInput) {
+        importCoursesBtn.addEventListener("click", () => {
+            menu.classList.remove("show");
+            importCoursesInput.click();
+        });
+
+        importCoursesInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    const version = (data.metadata && data.metadata.version) || "unknown";
+                    if (!SUPPORTED_VERSIONS.includes(version)) {
+                        showNotification({ title: 'Import Failed', message: `Unsupported version: ${version}. Expected one of: ${SUPPORTED_VERSIONS.join(', ')}`, type: 'danger' });
+                        return;
+                    }
+                    if (!data.courses || !Array.isArray(data.courses)) {
+                        showNotification({ title: 'Import Failed', message: 'Invalid data format: missing courses array.', type: 'danger' });
+                        return;
+                    }
+                    
+                    await ext.storage.local.set({ 
+                        offeredCourses: data.courses,
+                        offeredCourseMeta: data.metadata 
+                    });
+                    showNotification({ title: 'Import Successful', message: 'Offered courses loaded successfully.', type: 'success' });
+                    
+                    // Reload data
+                    setAllCourses(data.courses);
+                    document.getElementById("manageDataDropdown").style.display = "block";
+                    app.innerHTML = renderShell(data.metadata || {});
+                    bindSearchControls();
+                    bindSortControls();
+                    bindPlanControls();
+                    renderPlanPanel();
+                    renderRows();
+                } catch (err) {
+                    showNotification({ title: 'Import Failed', message: 'Failed to parse JSON file.', type: 'danger' });
+                }
+                importCoursesInput.value = ""; // reset
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    document.getElementById("deleteCoursesBtn").addEventListener("click", async () => {
+        menu.classList.remove("show");
+        if (!confirm("Clear all saved offered courses metadata? Your plan will not be affected.")) return;
         try {
             await ext.storage.local.remove(["offeredCourses", "offeredCourseMeta"]);
             await ext.storage.local.set({ injectMetadata: false });
+            setAllCourses([]);
+            app.innerHTML = '<p class="no-data">No saved metadata found.<br>Save from the offered courses page first.</p>';
         } catch (err) {
-            console.error("Error removing metadata from storage:", err);
+            console.error("Error removing course metadata from storage:", err);
         }
-        try {
-            if (ext.tabs && ext.tabs.getCurrent) {
-                const tab = await ext.tabs.getCurrent();
-                if (tab && tab.id) {
-                    await ext.tabs.remove(tab.id);
-                    return;
+    });
+
+    // --- My Plan ---
+    document.getElementById("downloadPlanBtn").addEventListener("click", async () => {
+        menu.classList.remove("show");
+        const stored = await ext.storage.local.get(["advisingPriorities"]);
+        if (stored.advisingPriorities) {
+            const manifest = ext.runtime.getManifest();
+            const exportData = {
+                metadata: {
+                    version: manifest.version || "1.2",
+                    exportedAt: new Date().toISOString()
+                },
+                plan: stored.advisingPriorities
+            };
+            downloadAsJson(exportData, "my_advising_plan.json");
+        } else {
+            alert("No plan found to export.");
+        }
+    });
+
+    const importPlanBtn = document.getElementById("importPlanBtn");
+    const importPlanInput = document.getElementById("importPlanInput");
+    if (importPlanBtn && importPlanInput) {
+        importPlanBtn.addEventListener("click", () => {
+            menu.classList.remove("show");
+            importPlanInput.click();
+        });
+
+        importPlanInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    const version = (data.metadata && data.metadata.version) || "unknown";
+                    if (!SUPPORTED_VERSIONS.includes(version)) {
+                        showNotification({ title: 'Import Failed', message: `Unsupported version: ${version}. Expected one of: ${SUPPORTED_VERSIONS.join(', ')}`, type: 'danger' });
+                        return;
+                    }
+                    if (!data.plan || !Array.isArray(data.plan)) {
+                        showNotification({ title: 'Import Failed', message: 'Invalid data format: missing plan array.', type: 'danger' });
+                        return;
+                    }
+                    
+                    setPlan(data.plan);
+                    await savePlan();
+                    showNotification({ title: 'Import Successful', message: 'Plan loaded successfully.', type: 'success' });
+                    
+                    renderPlanPanel();
+                    renderRows();
+                } catch (err) {
+                    showNotification({ title: 'Import Failed', message: 'Failed to parse JSON file.', type: 'danger' });
                 }
-            }
+                importPlanInput.value = ""; // reset
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    document.getElementById("deletePlanBtn").addEventListener("click", async () => {
+        menu.classList.remove("show");
+        if (!confirm("Clear your entire course plan? Offered courses will not be affected.")) return;
+        setPlan([]);
+        await savePlan();
+        renderPlanPanel();
+        renderRows();
+    });
+
+    // --- All Data ---
+    document.getElementById("deleteAllBtn").addEventListener("click", async () => {
+        menu.classList.remove("show");
+        if (!confirm("Delete ALL saved course metadata AND your plan? This cannot be undone.")) return;
+        try {
+            await ext.storage.local.remove(["offeredCourses", "offeredCourseMeta", "advisingPriorities"]);
+            await ext.storage.local.set({ injectMetadata: false });
         } catch (err) {
-            console.warn("Could not close tab via tabs API:", err);
+            console.error("Error removing all data from storage:", err);
         }
-        window.close();
-        deleteMetaBtn.style.display = "none";
+        
+        dropdown.style.display = "none";
         app.innerHTML = '<p class="no-data">No saved metadata found.<br>Save from the offered courses page first.</p>';
     });
 }
 
 async function init() {
     const app = document.getElementById("app");
-    const deleteMetaBtn = document.getElementById("deleteMetaBtn");
+    const manageDataDropdown = document.getElementById("manageDataDropdown");
 
-    bindDeleteMetadata(deleteMetaBtn, app);
+    bindManageData(app);
 
     const stored = await ext.storage.local.get([
         "offeredCourses", "offeredCourseMeta", "advisingPriorities"
@@ -193,12 +366,12 @@ async function init() {
     setPlan(Array.isArray(stored.advisingPriorities) ? stored.advisingPriorities : []);
 
     if (allCourses.length === 0) {
-        if (deleteMetaBtn) deleteMetaBtn.style.display = "none";
+        if (manageDataDropdown) manageDataDropdown.style.display = "none";
         app.innerHTML = '<p class="no-data">No saved metadata found.<br>Save from the offered courses page first.</p>';
         return;
     }
 
-    if (deleteMetaBtn) deleteMetaBtn.style.display = "flex";
+    if (manageDataDropdown) manageDataDropdown.style.display = "block";
 
     app.innerHTML = renderShell(stored.offeredCourseMeta || {});
 

@@ -123,7 +123,7 @@ export async function showNotification(options) {
 
     // HUD Badge tag based on type
     const badgeMap = {
-        success: "SEAT UNLOCKED",
+        success: "SUCCESS",
         warning: "NEW SECTION DETECTED",
         danger: "ACTION REQUIRED",
         info: "SYSTEM ALERT"
