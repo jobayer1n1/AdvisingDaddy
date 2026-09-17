@@ -1,4 +1,4 @@
-# AdvisingDaddy - NSU Auto-Advise & Course Assistant
+# AdvisingDaddy - NSU Advising & Course Assistant
 
 > **AdvisingDaddy** is a comprehensive, client-side browser extension and course planning suite engineered specifically for North South University (NSU) students. It automates course advising, monitors seat openings in real-time, alerts on newly opened sections, detects schedule and final exam clashes, and enhances both the NSU Advising Portal and Offered Courses system with powerful search, sorting, and metadata injection.
 
@@ -6,12 +6,12 @@
 
 ## Table of Contents
 
-- [AdvisingDaddy - NSU Auto-Advise \& Course Assistant](#advisingdaddy---nsu-auto-advise--course-assistant)
+- [AdvisingDaddy - NSU Advising \& Course Assistant](#advisingdaddy---nsu-advising--course-assistant)
   - [Table of Contents](#table-of-contents)
   - [Key Features Overview](#key-features-overview)
   - [Installation \& Setup](#installation--setup)
     - [Google Chrome / Brave / Microsoft Edge](#google-chrome--brave--microsoft-edge)
-    - [Mozilla Firefox (Desktop \& Android)](#mozilla-firefox-desktop--android)
+    - [Mozilla Firefox (if available)](#mozilla-firefox-if-available)
   - [Core Architecture \& Workflow](#core-architecture--workflow)
   - [Step-by-Step User Guide](#step-by-step-user-guide)
     - [Step 1: Extract \& Save Course Metadata](#step-1-extract--save-course-metadata)
