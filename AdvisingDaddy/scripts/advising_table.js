@@ -406,7 +406,13 @@ export function addCourseSearchBar() {
         });
 
         // re‑order the DOM so sorting is reflected visually
-        [...visible, ...hidden].forEach((row) => tbody.appendChild(row));
+        // Only move rows when there is an active query or non-default sort.
+        // Unconditionally re-appending every row on every keystroke triggers
+        // the portal's DOM-mutation hooks (UpdatePanel / jQuery listeners)
+        // and can cause a freeze / infinite-refresh loop.
+        if (query || sortKey) {
+            [...visible, ...hidden].forEach((row) => tbody.appendChild(row));
+        }
 
         // update the count badge
         if (query) {
@@ -448,12 +454,16 @@ export async function injectSavedCourseMetadata() {
     const table = document.getElementById(COURSE_TABLE_ID);
     if (!table) return;
 
-    applyAdvisingLayoutStyles();
-    addCourseSearchBar();
-
+    // Check for saved metadata FIRST before touching the portal DOM.
+    // Injecting the search bar and layout styles when there is no metadata
+    // disrupts the portal's layout for no benefit and can break the portal's
+    // own course-loading logic (e.g. UpdatePanel region child-count checks).
     const data = await ext.storage.local.get(OFFERED_COURSE_SAVE_KEY);
     const offeredCourses = data[OFFERED_COURSE_SAVE_KEY];
     if (!Array.isArray(offeredCourses) || offeredCourses.length === 0) return;
+
+    applyAdvisingLayoutStyles();
+    addCourseSearchBar();
 
     const courseMetaMap = new Map();
     for (const item of offeredCourses) {

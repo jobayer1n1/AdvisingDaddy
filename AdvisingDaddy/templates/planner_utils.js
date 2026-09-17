@@ -9,15 +9,51 @@ export const NSU_SLOTS = [
 
 /**
  * Canonical day sort order.
- * Single-letter days follow the NSU week (Sat → Thu), then the
+ * Single-letter days follow the NSU week (Sat → Fri), then the
  * two-day recurring patterns RA / ST / MW.
- * Adjust the "R" entry below if your data uses a different code for Thursday.
  */
-export const DAY_ORDER_LIST = ["A", "S", "M", "T", "W", "R", "RA", "ST", "MW"];
+export const DAY_ORDER_LIST = ["A", "S", "M", "T", "W", "R", "F", "RA", "ST", "MW"];
 export const DAY_ORDER = DAY_ORDER_LIST.reduce((acc, day, idx) => {
     acc[day] = idx;
     return acc;
 }, {});
+
+/** Allowed canonical single-day codes in NSU */
+export const VALID_DAYS = ["A", "S", "M", "T", "W", "R", "F"];
+
+/**
+ * Splits a day string into an array of canonical single days: A, S, M, T, W, R, F.
+ * Combinations of two (e.g. "MW", "ST", "RA") are split into individual days.
+ * @param {string} dayStr e.g. "MW" -> ["M", "W"], "W" -> ["W"]
+ * @returns {string[]}
+ */
+export function splitDays(dayStr) {
+    if (!dayStr) return [];
+    let normalized = String(dayStr).toUpperCase().trim();
+    normalized = normalized.replace(/TH/g, "R");
+
+    const days = [];
+    for (const ch of normalized) {
+        if (VALID_DAYS.includes(ch) && !days.includes(ch)) {
+            days.push(ch);
+        }
+    }
+    return days;
+}
+
+/**
+ * True if two day strings share at least one common day.
+ * E.g. "MW" and "W" share "W", "MW" and "MW" share "M" & "W", "MW" and "ST" share none.
+ * @param {string} dayA
+ * @param {string} dayB
+ * @returns {boolean}
+ */
+export function daysOverlap(dayA, dayB) {
+    const a = splitDays(dayA);
+    const b = splitDays(dayB);
+    if (a.length === 0 || b.length === 0) return false;
+    return a.some(day => b.includes(day));
+}
 
 /** How many rows to show when no search query is active */
 export const DEFAULT_LIMIT = 10;
@@ -31,8 +67,12 @@ function s(val) {
 
 // ── Course type ───────────────────────────────────────────────────────────────
 
-/** Lab courses end with the letter L (e.g. CSE332L) */
+/** Lab courses end with the letter L (e.g. CSE332L, or CSE332L/EEE332L) */
 export function isLabCourse(courseName) {
+    const options = getCourseNameOptions(courseName);
+    if (options.length > 0) {
+        return options.some(name => /L$/i.test(name.trim()));
+    }
     return /L$/i.test((courseName || "").trim());
 }
 
@@ -169,9 +209,18 @@ export function sortCourses(data, mode) {
         copy.sort((a, b) => s(a.faculty).localeCompare(s(b.faculty)));
     } else if (mode === "day") {
         copy.sort((a, b) => {
-            const da = DAY_ORDER[s(a.day).toUpperCase()] ?? Infinity;
-            const db = DAY_ORDER[s(b.day).toUpperCase()] ?? Infinity;
-            return da - db;
+            const getRank = (dayStr) => {
+                const upper = s(dayStr).toUpperCase().trim();
+                if (DAY_ORDER[upper] !== undefined) return DAY_ORDER[upper];
+                const days = splitDays(upper);
+                if (days.length > 0) {
+                    const firstRank = DAY_ORDER[days[0]] ?? 50;
+                    const secondRank = days.length > 1 ? (DAY_ORDER[days[1]] ?? 50) : 0;
+                    return 100 + firstRank * 10 + secondRank;
+                }
+                return Infinity;
+            };
+            return getRank(a.day) - getRank(b.day);
         });
     } else if (mode === "seats") {
         copy.sort((a, b) => (parseInt(b.seatsAvailable, 10) || 0) - (parseInt(a.seatsAvailable, 10) || 0));
@@ -183,6 +232,9 @@ export function sortCourses(data, mode) {
 
 /**
  * Returns labels of planned sections that time-clash with the given row.
+ * A time clash occurs when two sections share at least one class day
+ * (e.g. "MW" has classes on Monday & Wednesday, clashing with Wednesday "W" at the same time)
+ * and their class times overlap.
  * @param {object} row - Course row being checked
  * @param {object[]} plannedObjects - Full course objects of all planned sections
  * @returns {string[]} e.g. ["CSE331.1", "CSE327.2"]
@@ -191,17 +243,24 @@ export function getClashInfo(row, plannedObjects) {
     const clashes = [];
     for (const p of plannedObjects) {
         if (p.course === row.course && p.section === row.section) continue;
-        if (p.day && row.day && p.day === row.day && timesOverlap(row.time, p.time)) {
+        if (p.day && row.day && daysOverlap(row.day, p.day) && timesOverlap(row.time, p.time)) {
             clashes.push(`${p.course}.${p.section}`);
         }
     }
     return clashes;
 }
 
+
 /**
  * Returns labels of planned (non-lab) sections that share a same-day final
- * with the given (non-lab) row. Two courses have a same-day final when they
- * are on the same day and their NSU slot indices differ by an odd number.
+ * with the given (non-lab) row.
+ *
+ * A same-day final warning is raised when ALL of the following are true:
+ *   1. Both the row and the planned course are non-lab.
+ *   2. The two courses share at least one common class day
+ *      (works for any combination: MW, ST, RA, M, W, S, T, R, A …).
+ *   3. Their NSU slot indices differ by an odd number.
+ *
  * Lab courses (name ending in L) are excluded from both sides.
  * @param {object} row - Course row being checked
  * @param {object[]} plannedObjects - Full course objects of all planned sections
@@ -209,6 +268,7 @@ export function getClashInfo(row, plannedObjects) {
  */
 export function getSameDayFinalInfo(row, plannedObjects) {
     if (isLabCourse(row.course)) return [];
+
     const rowStart = Array.isArray(row.time) ? row.time[0] : null;
     const rowIdx = getSlotIndex(rowStart);
     if (rowIdx === -1) return [];
@@ -217,11 +277,13 @@ export function getSameDayFinalInfo(row, plannedObjects) {
     for (const p of plannedObjects) {
         if (isLabCourse(p.course)) continue;
         if (p.course === row.course && p.section === row.section) continue;
-        if (!p.day || !row.day || p.day !== row.day) continue;
+        if (!p.day || !row.day || !daysOverlap(row.day, p.day)) continue;
         const pStart = Array.isArray(p.time) ? p.time[0] : null;
         const pIdx = getSlotIndex(pStart);
         if (pIdx === -1) continue;
-        if (Math.abs(rowIdx - pIdx) % 2 === 1) {
+        // Even non-zero slot distance → same exam day in NSU's schedule
+        const dist = Math.abs(rowIdx - pIdx);
+        if (dist > 0 && dist % 2 === 0) {
             warnings.push(`${p.course}.${p.section}`);
         }
     }

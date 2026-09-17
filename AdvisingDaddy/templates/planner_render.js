@@ -176,19 +176,23 @@ function showInfoPopover(anchorEl, title, items) {
     const rect = anchorEl.getBoundingClientRect();
     const popRect = popover.getBoundingClientRect();
 
-    let left = rect.left + window.scrollX;
+    const anchorCenterX = rect.left + rect.width / 2 + window.scrollX;
     const top = rect.bottom + window.scrollY + 10;
 
+    // Center the popover horizontally over the anchor, then clamp to viewport.
+    let left = anchorCenterX - popRect.width / 2;
+    const minLeft = window.scrollX + 8;
     const maxLeft = window.scrollX + document.documentElement.clientWidth - popRect.width - 8;
-    if (left > maxLeft) left = Math.max(8, maxLeft);
+    left = Math.max(minLeft, Math.min(left, maxLeft));
 
     popover.style.left = `${left}px`;
     popover.style.top = `${top}px`;
 
-    // Point the arrow at the anchor's horizontal center, clamped so it
-    // never slides past the popover's rounded corners.
-    const anchorCenterX = rect.left + rect.width / 2 + window.scrollX;
-    const arrowLeft = Math.max(12, Math.min(anchorCenterX - left, popRect.width - 12));
+    // Arrow tip must align with anchor center.
+    // The border-triangle is 14 px wide (7 left + 7 right borders), so subtract
+    // half that (7 px) so the *tip* — not the left edge — sits over the icon.
+    const ARROW_HALF = 7;
+    const arrowLeft = Math.max(12, Math.min(anchorCenterX - left - ARROW_HALF, popRect.width - 12));
     arrow.style.left = `${arrowLeft}px`;
 }
 
@@ -268,13 +272,27 @@ async function chooseAlternateCourse(entryIdx, selectedName) {
     renderRows();
 }
 
+/**
+ * Paste courseName into #searchInput and trigger input event to filter rows.
+ */
+function searchForCourse(courseName) {
+    const searchInput = document.getElementById("searchInput");
+    if (!searchInput) return;
+    searchInput.value = courseName;
+    searchInput.dispatchEvent(new Event("input", { bubbles: true }));
+    searchInput.focus();
+}
+
 function renderCourseNameControl(entry, entryIdx) {
     const courseOptions = getCourseNameOptions(entry.name);
 
     if (courseOptions.length <= 1) {
         const nameBadge = document.createElement("span");
-        nameBadge.className = "plan-course-badge";
+        nameBadge.className = "plan-course-badge plan-course-badge-clickable";
         nameBadge.textContent = entry.name;
+        nameBadge.title = "Click to search for this course";
+        nameBadge.style.cursor = "pointer";
+        nameBadge.addEventListener("click", () => searchForCourse(entry.name));
         return nameBadge;
     }
 
@@ -580,12 +598,15 @@ export function renderRows(data = getDisplayData()) {
         const tr = document.createElement("tr");
         if (inPlan) tr.classList.add("in-plan");
 
+        let clashIconId = clashes.length > 0 ? `icon-clash-${i}` : null;
+        let finalIconId = sameDayFinals.length > 0 ? `icon-final-${i}` : null;
+
         let iconHtml = "";
         if (clashes.length > 0) {
-            iconHtml += `<span class="icon-clash" tabindex="0" role="button" aria-haspopup="true" title="Time clash — click for details">!</span>`;
+            iconHtml += `<span id="${clashIconId}" class="icon-clash" tabindex="0" role="button" aria-haspopup="true" title="Time clash — click for details">T</span>`;
         }
         if (sameDayFinals.length > 0) {
-            iconHtml += `<span class="icon-final" tabindex="0" role="button" aria-haspopup="true" title="Same-day final — click for details">F</span>`;
+            iconHtml += `<span id="${finalIconId}" class="icon-final" tabindex="0" role="button" aria-haspopup="true" title="Same-day final — click for details">F</span>`;
         }
 
         tr.innerHTML = `
@@ -601,14 +622,21 @@ export function renderRows(data = getDisplayData()) {
         `;
         tbody.appendChild(tr);
 
-        bindClickPopover(tr.querySelector(".icon-clash"), () => ({
-            title: "Time clash with",
-            items: formatWarningItems(clashes, plannedObjects)
-        }));
-        bindClickPopover(tr.querySelector(".icon-final"), () => ({
-            title: "Same-day final with",
-            items: formatWarningItems(sameDayFinals, plannedObjects)
-        }));
+        // Use getElementById so the anchor is exactly the icon element that was rendered
+        if (clashIconId) {
+            const clashEl = document.getElementById(clashIconId);
+            bindClickPopover(clashEl, () => ({
+                title: "Time clash with",
+                items: formatWarningItems(clashes, plannedObjects)
+            }));
+        }
+        if (finalIconId) {
+            const finalEl = document.getElementById(finalIconId);
+            bindClickPopover(finalEl, () => ({
+                title: "Same-day final with",
+                items: formatWarningItems(sameDayFinals, plannedObjects)
+            }));
+        }
     });
 
     tbody.querySelectorAll(".add-btn").forEach(btn => {

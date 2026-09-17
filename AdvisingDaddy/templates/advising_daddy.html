@@ -258,7 +258,7 @@
             vertical-align: middle;
         }
         .icon-clash { color: var(--red); }
-        .icon-final { color: var(--amber); }
+        .icon-final { color: var(--amber); font-weight: 700; }
 
         /* ── Plan cell / add button ─────────── */
         .plan-cell { text-align: center; }
@@ -408,6 +408,11 @@
             font-weight: 700;
             letter-spacing: 0.02em;
             flex-shrink: 0;
+        }
+        .plan-course-badge-clickable:hover {
+            background: rgba(145, 198, 188, 0.25);
+            border-color: var(--accent);
+            box-shadow: 0 0 6px var(--accent-glow);
         }
 
         .plan-course-select {
