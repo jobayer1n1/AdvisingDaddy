@@ -17,7 +17,7 @@ import {
 import { renderPlanPanel, renderRows } from "./planner_render.js";
 import { showNotification } from "../scripts/notification.js";
 
-const SUPPORTED_VERSIONS = ["1.2"];
+const SUPPORTED_VERSIONS = ["1.2", "1.2.1"];
 
 function renderShell(meta) {
     const savedAt = meta.savedAt ? new Date(meta.savedAt).toLocaleString() : "—";
@@ -262,7 +262,6 @@ function bindManageData(app) {
             await ext.storage.local.remove(["offeredCourses", "offeredCourseMeta"]);
             await ext.storage.local.set({ injectMetadata: false });
             setAllCourses([]);
-            app.innerHTML = '<p class="no-data">No saved metadata found.<br>Save from the offered courses page first.</p>';
         } catch (err) {
             console.error("Error removing course metadata from storage:", err);
         }
@@ -364,12 +363,6 @@ async function init() {
 
     setAllCourses(Array.isArray(stored.offeredCourses) ? stored.offeredCourses : []);
     setPlan(Array.isArray(stored.advisingPriorities) ? stored.advisingPriorities : []);
-
-    if (allCourses.length === 0) {
-        if (manageDataDropdown) manageDataDropdown.style.display = "none";
-        app.innerHTML = '<p class="no-data">No saved metadata found.<br>Save from the offered courses page first.</p>';
-        return;
-    }
 
     if (manageDataDropdown) manageDataDropdown.style.display = "block";
 

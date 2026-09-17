@@ -42,13 +42,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             injectMetaText.style.color = "#9aa3ad";
             injectMetaToggle.disabled = true;
             injectMetaToggle.checked = false;
-            if (viewMetaBtn) viewMetaBtn.style.display = "none";
         } else {
             injectMetaText.innerHTML = (isEnabled ? "Inject Metadata Enabled" : "Inject Metadata Disabled") +
                 ' <span class="domain-tag">[all]</span>';
             injectMetaText.style.color = isEnabled ? "#91C6BC" : "#ffffffff";
             injectMetaToggle.disabled = false;
-            if (viewMetaBtn) viewMetaBtn.style.display = "inline-flex";
         }
     }
 
