@@ -346,13 +346,28 @@ export function addCourseSearchBar() {
         return Number.isNaN(v) ? 0 : v;
     }
 
-    /* ── main search + sort routine ────────────────────────── */
-    function performSearch() {
+    function ensureOrigIndexes(rows) {
+        rows.forEach((row, i) => {
+            if (row.dataset.origIndex === undefined) {
+                row.dataset.origIndex = String(i);
+            }
+        });
+    }
+
+    /* ── filtering only: toggles visibility, never touches DOM order ──
+       This runs on every keystroke, so it must stay cheap and must never
+       call appendChild — reordering nodes on every keystroke is what
+       wakes up the portal's UpdatePanel / jQuery mutation hooks and
+       causes the freeze / infinite-refresh loop.                        */
+    function applyFilterOnly() {
         const table = document.getElementById(COURSE_TABLE_ID);
         if (!table) return;
 
         const tbody = table.querySelector("tbody");
         if (!tbody) return;
+
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        ensureOrigIndexes(rows);
 
         const query = (input.value || "").trim();
         const tokens = query
@@ -360,66 +375,31 @@ export function addCourseSearchBar() {
             .split(/\s+/)
             .filter(Boolean);
 
-        const rows = Array.from(tbody.querySelectorAll("tr"));
-
-        // remember the natural order once, so "Sort: default" can restore it
-        rows.forEach((row, i) => {
-            if (row.dataset.origIndex === undefined) {
-                row.dataset.origIndex = String(i);
-            }
-        });
-
-        const fieldsMap = new Map();
-        rows.forEach((row) => fieldsMap.set(row, getRowFields(row)));
-
-        const visible = [];
-        const hidden = [];
+        let visibleCount = 0;
 
         rows.forEach((row) => {
-            const f = fieldsMap.get(row);
-            if (rowMatches(f, tokens)) {
-                visible.push(row);
+            const f = getRowFields(row);
+            const matches = rowMatches(f, tokens);
+
+            if (matches) {
+                visibleCount++;
+                if (row.style.display !== "") row.style.display = "";
+                if (row.hasAttribute("data-search-hidden")) {
+                    row.removeAttribute("data-search-hidden");
+                }
             } else {
-                hidden.push(row);
+                if (row.style.display !== "none") row.style.display = "none";
+                if (!row.hasAttribute("data-search-hidden")) {
+                    row.setAttribute("data-search-hidden", "true");
+                }
             }
         });
 
-        const sortKey = sortSelect ? sortSelect.value : "";
-
-        if (sortKey) {
-            visible.sort((a, b) => compareRows(a, b, sortKey, fieldsMap));
-        } else {
-            visible.sort((a, b) => origIndex(a) - origIndex(b));
-        }
-
-        hidden.sort((a, b) => origIndex(a) - origIndex(b));
-
-        // apply visibility
-        visible.forEach((row) => {
-            row.style.display = "";
-            row.removeAttribute("data-search-hidden");
-        });
-
-        hidden.forEach((row) => {
-            row.style.display = "none";
-            row.setAttribute("data-search-hidden", "true");
-        });
-
-        // re‑order the DOM so sorting is reflected visually
-        // Only move rows when there is an active query or non-default sort.
-        // Unconditionally re-appending every row on every keystroke triggers
-        // the portal's DOM-mutation hooks (UpdatePanel / jQuery listeners)
-        // and can cause a freeze / infinite-refresh loop.
-        if (query || sortKey) {
-            [...visible, ...hidden].forEach((row) => tbody.appendChild(row));
-        }
-
-        // update the count badge
         if (query) {
             clearBtn.style.display = "block";
             countDiv.style.display = "block";
-            countDiv.textContent = `${visible.length} course${
-                visible.length === 1 ? "" : "s"
+            countDiv.textContent = `${visibleCount} course${
+                visibleCount === 1 ? "" : "s"
             } found`;
         } else {
             clearBtn.style.display = "none";
@@ -428,24 +408,74 @@ export function addCourseSearchBar() {
         }
     }
 
+    /* ── sorting only: reorders DOM nodes, only called when the sort
+       dropdown actually changes (never on keystrokes). Batches the
+       reorder into a single DocumentFragment append and skips the
+       write entirely if order hasn't actually changed, to minimize
+       how many mutation events the portal sees.                        */
+    function applySortOrder() {
+        const table = document.getElementById(COURSE_TABLE_ID);
+        if (!table) return;
+
+        const tbody = table.querySelector("tbody");
+        if (!tbody) return;
+
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        ensureOrigIndexes(rows);
+
+        const fieldsMap = new Map();
+        rows.forEach((row) => fieldsMap.set(row, getRowFields(row)));
+
+        const sortKey = sortSelect ? sortSelect.value : "";
+
+        const ordered = rows.slice().sort((a, b) => {
+            return sortKey
+                ? compareRows(a, b, sortKey, fieldsMap)
+                : origIndex(a) - origIndex(b);
+        });
+
+        const changed = ordered.some((row, i) => tbody.children[i] !== row);
+        if (!changed) return;
+
+        const frag = document.createDocumentFragment();
+        ordered.forEach((row) => frag.appendChild(row));
+        tbody.appendChild(frag);
+    }
+
+    /* ── debounce helper for the search input ─────────────────────── */
+    function debounce(fn, wait) {
+        let t = null;
+        return (...args) => {
+            if (t) clearTimeout(t);
+            t = setTimeout(() => fn(...args), wait);
+        };
+    }
+
+    const debouncedFilter = debounce(applyFilterOnly, 180);
+
     /* ── wiring ────────────────────────────────────────────── */
-    input.addEventListener("input", performSearch);
+    input.addEventListener("input", debouncedFilter);
 
     clearBtn.addEventListener("click", () => {
         input.value = "";
-        performSearch();
+        applyFilterOnly();
         input.focus();
     });
 
     input.addEventListener("keydown", (e) => {
         if (e.key === "Escape") {
             input.value = "";
-            performSearch();
+            applyFilterOnly();
         }
     });
 
     if (sortSelect) {
-        sortSelect.addEventListener("change", performSearch);
+        sortSelect.addEventListener("change", () => {
+            applySortOrder();
+            // re-apply current filter state (visibility only) in case
+            // the sort handler ran before any filtering had occurred
+            applyFilterOnly();
+        });
     }
 }
 
