@@ -19,7 +19,7 @@ const CLAIMED_EVENTS = ["keydown", "keypress", "keyup", "input", "change"];
 
 /* ── icons + settings key for the fetch toolbar ─────────────── */
 const SVG_REFRESH = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`;
-const SVG_GEAR = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+const SVG_GEAR = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
 
 // Persisted auto-fetch interval range (seconds) + on/off flag.
 const AUTO_FETCH_STORAGE_KEY = "advAutoFetchRange";
@@ -134,12 +134,28 @@ export function addCourseSearchBar() {
 
     const portalMode = Boolean(document.getElementById(PORTAL_INPUT_ID));
 
+    // The sort select HTML is shared between portal and non-portal mode.
+    const sortSelectHtml = `
+        <select id="advCourseSortSelect" title="Sort results">
+            <option value="">Sort: default</option>
+            <option value="section">Section (asc)</option>
+            <option value="day">Day (A → MW)</option>
+            <option value="seats">Open seats (most first)</option>
+            <option value="faculty">Faculty (A–Z)</option>
+        </select>`;
+
+    // Non-portal: own search input + sort select share one row.
     const ownInputRow = `
-        <div style="position: relative; display: flex; align-items: center; width: 100%;">
-            <span style="position: absolute; left: 10px; font-size: 13px; color: #656d76; pointer-events: none;">🔍</span>
-            <input type="text" id="advCourseSearchInput" placeholder="${SEARCH_PLACEHOLDER}" />
-            <button id="advCourseSearchClear" type="button" title="Clear search">✕</button>
+        <div id="advSearchRow">
+            <div style="position: relative; flex: 1; display: flex; align-items: center;">
+                <span style="position: absolute; left: 10px; font-size: 13px; color: #656d76; pointer-events: none;">🔍</span>
+                <input type="text" id="advCourseSearchInput" placeholder="${SEARCH_PLACEHOLDER}" />
+                <button id="advCourseSearchClear" type="button" title="Clear search">✕</button>
+            </div>
+            ${sortSelectHtml}
         </div>`;
+
+    // Portal mode: inline clear goes in the footer; sort select is injected into #searchDiv.
     const inlineClear = `<button id="advCourseSearchClear" type="button" title="Clear search">✕ Clear</button>`;
 
     const searchContainer = document.createElement("div");
@@ -150,20 +166,13 @@ export function addCourseSearchBar() {
             <div id="advCourseSearchInfo">
                 <div id="advAutoFetchWrap">
                     <button id="advAutoFetchBtn" type="button" aria-haspopup="true" aria-expanded="false" title="Auto-fetch settings">${SVG_GEAR}</button>
-                    <span id="advAutoFetchLabel">3–5s</span>
+                    <span id="advAutoFetchCountdown" hidden aria-live="polite"></span>
                 </div>
                 <button id="advCourseFetchBtn" type="button" title="Fetch the latest seat counts and update only the cells that changed"><span class="adv-btn-icon">${SVG_REFRESH}</span><span>Fetch updates</span></button>
                 <span id="advCourseFetchStatus"></span>
                 <div id="advCourseSearchCount"></div>
                 ${portalMode ? inlineClear : ""}
             </div>
-            <select id="advCourseSortSelect" title="Sort results">
-                <option value="">Sort: default</option>
-                <option value="section">Section (asc)</option>
-                <option value="day">Day (A → MW)</option>
-                <option value="seats">Open seats (most first)</option>
-                <option value="faculty">Faculty (A–Z)</option>
-            </select>
         </div>
         <div id="advAutoFetchPanel" hidden>
             <div class="adv-af-head">
@@ -191,10 +200,24 @@ export function addCourseSearchBar() {
 
     offeredCoursesDiv.parentNode.insertBefore(searchContainer, offeredCoursesDiv);
 
+    // In portal mode: inject the sort select into #searchDiv so it sits to the
+    // right of the portal's own #searchText input. We create it from the shared
+    // sortSelectHtml string and append it there (hidden inputs stay untouched).
+    if (portalMode) {
+        const searchDiv = document.getElementById("searchDiv");
+        if (searchDiv && !searchDiv.querySelector("#advCourseSortSelect")) {
+            const tmp = document.createElement("span"); // throwaway wrapper
+            tmp.innerHTML = sortSelectHtml;
+            searchDiv.appendChild(tmp.firstElementChild);
+        }
+    }
+
     const ownInput = searchContainer.querySelector("#advCourseSearchInput"); // null in portal mode
     const clearBtn = searchContainer.querySelector("#advCourseSearchClear");
     const countDiv = searchContainer.querySelector("#advCourseSearchCount");
-    const sortSelect = searchContainer.querySelector("#advCourseSortSelect");
+    // In portal mode the sort select lives inside #searchDiv, not searchContainer.
+    const sortSelect = document.getElementById("advCourseSortSelect") ||
+        searchContainer.querySelector("#advCourseSortSelect");
     const fetchBtn = searchContainer.querySelector("#advCourseFetchBtn");
     const fetchStatus = searchContainer.querySelector("#advCourseFetchStatus");
 
@@ -590,7 +613,7 @@ export function addCourseSearchBar() {
     /* ── auto-fetch settings (gear) ────────────────────────── */
     const autoWrap = searchContainer.querySelector("#advAutoFetchWrap");
     const autoBtn = searchContainer.querySelector("#advAutoFetchBtn");
-    const autoLabel = searchContainer.querySelector("#advAutoFetchLabel");
+    const autoCountdown = searchContainer.querySelector("#advAutoFetchCountdown");
     const autoPanel = searchContainer.querySelector("#advAutoFetchPanel");
     const autoClose = searchContainer.querySelector("#advAutoFetchClose");
     const autoToggle = searchContainer.querySelector("#advAutoFetchToggle");
@@ -632,12 +655,16 @@ export function addCourseSearchBar() {
             autoToggle.checked = autoSettings.enabled;
 
             const text = rangeText();
-            autoLabel.textContent = autoSettings.enabled ? text : "off";
-            autoLabel.classList.toggle("off", !autoSettings.enabled);
             autoBtn.classList.toggle("active", autoSettings.enabled);
             autoBtn.title = autoSettings.enabled
                 ? `Auto fetch every ${text} — click to change`
                 : "Auto fetch is off — click to change";
+
+            // Hide countdown when disabled; scheduleAutoFetch will show it when running.
+            if (!autoSettings.enabled && autoCountdown) {
+                autoCountdown.hidden = true;
+                autoCountdown.textContent = "";
+            }
 
             paintRange(autoMin);
             paintRange(autoMax);
@@ -654,16 +681,43 @@ export function addCourseSearchBar() {
         }
 
         // Random delay inside [min, max] on every cycle — no fixed cadence.
+        // A 200 ms interval keeps the visible countdown smooth without any
+        // layout cost (it writes only textContent of a hidden <span>).
+        let countdownInterval = null;
+
+        function stopCountdown() {
+            if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+            if (autoCountdown) { autoCountdown.hidden = true; autoCountdown.textContent = ""; }
+        }
+
+        function startCountdown(delayMs) {
+            if (!autoCountdown) return;
+            stopCountdown();
+            const endAt = Date.now() + delayMs;
+            const tick = () => {
+                const remaining = Math.max(0, endAt - Date.now());
+                autoCountdown.textContent = `${Math.ceil(remaining / 1000)}s`;
+                autoCountdown.hidden = false;
+                if (remaining <= 0) stopCountdown();
+            };
+            tick(); // immediate first paint
+            countdownInterval = setInterval(tick, 200);
+        }
+
         function scheduleAutoFetch() {
             if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+            stopCountdown();
             if (!autoSettings.enabled || !runFetch) return;
 
             const lo = Math.min(autoSettings.min, autoSettings.max);
             const hi = Math.max(autoSettings.min, autoSettings.max);
             const delay = Math.round((lo + Math.random() * (hi - lo)) * 1000);
 
+            startCountdown(delay);
+
             autoTimer = setTimeout(async () => {
                 autoTimer = null;
+                stopCountdown();
                 try {
                     await runFetch({ auto: true });
                 } catch (err) {

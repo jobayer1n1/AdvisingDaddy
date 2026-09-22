@@ -186,21 +186,40 @@ export function applyAdvisingLayoutStyles() {
         #courseList tbody tr.cstat0 td {
             cursor: pointer;
         }
+        /* ── search row (non-portal: input + sort share one row) ─ */
+        #advSearchRow {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        #advSearchRow #advCourseSortSelect {
+            flex: 0 0 auto;
+        }
+        /* ── portal mode: make #searchDiv a flex row so the sort
+           select sits directly to the right of #searchText ─────── */
+        #searchDiv {
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            flex-wrap: nowrap !important;
+        }
+        #searchDiv #advCourseSortSelect {
+            flex: 0 0 auto;
+            margin: 0 !important;
+        }
+        /* ── search info footer ─────────────────────────────── */
         #advCourseSearchInfo {
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
         }
         #advCourseSearchFooter #advCourseSearchClear {
             position: static !important;
             padding: 0 !important;
             font-size: 11px !important;
-        }
-        #advCourseSearchFooter #advCourseSortSelect {
-            margin-left: auto;
-        }
-        #advCourseSearchInfo {
-            flex-wrap: wrap;
         }
         /* ── toolbar buttons ────────────────────────────────── */
         #advCourseFetchBtn, #advAutoFetchBtn {
@@ -244,13 +263,13 @@ export function applyAdvisingLayoutStyles() {
         #advCourseFetchBtn .adv-btn-icon.adv-spin { animation: advSpin 1s linear infinite; }
         @keyframes advSpin { to { transform: rotate(360deg); } }
 
-        /* ── gear button + range caption ────────────────────── */
+        /* ── gear button + notification badge ───────────────── */
         #advAutoFetchWrap {
             display: inline-flex;
-            flex-direction: column;
             align-items: center;
-            gap: 1px;
             flex: 0 0 auto;
+            /* relative so the badge can be pinned to the gear corner */
+            position: relative;
         }
         #advAutoFetchBtn {
             padding: 4px 6px !important;
@@ -262,15 +281,42 @@ export function applyAdvisingLayoutStyles() {
             background: #eef4fb !important;
             color: #003e7e !important;
         }
-        #advAutoFetchLabel {
-            font-size: 9px;
+        /* countdown badge — notification bubble pinned to top-right of the gear */
+        #advAutoFetchCountdown {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            z-index: 10;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 14px;
+            height: 14px;
+            padding: 0 3px;
+            font-size: 8px;
+            font-weight: 800;
             line-height: 1;
-            color: #57606a;
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
-            letter-spacing: 0.01em;
+            color: #ffffff;
+            background: #e3322d;
+            border: 1.5px solid #ffffff;
+            border-radius: 7px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            letter-spacing: 0em;
+            animation: adv-cd-pulse 1s ease-in-out infinite;
+            pointer-events: none;
+            /* subpixel sharpness */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            will-change: transform, opacity;
+            transform: translateZ(0);
         }
-        #advAutoFetchLabel.off { color: #8c959f; }
+        #advAutoFetchCountdown[hidden] { display: none; }
+        @keyframes adv-cd-pulse {
+            0%, 100% { transform: scale(1);   opacity: 1; }
+            50%       { transform: scale(1.1); opacity: 0.85; }
+        }
 
         /* ── auto-fetch popover ─────────────────────────────── */
         #advAutoFetchPanel {
