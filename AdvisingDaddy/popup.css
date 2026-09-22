@@ -637,9 +637,114 @@ body.dark hr {
     text-align: center;
 }
 
-.popup-header .icon-btn {
+.popup-header .header-left,
+.popup-header .header-right {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.popup-header .header-left {
+    grid-column: 1;
+    justify-self: start;
+}
+
+.popup-header .header-right {
     grid-column: 3;
     justify-self: end;
+}
+
+/* =========================
+   HEADER LABELS & UPDATE PANEL
+========================= */
+.header-label {
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    line-height: 1;
+    margin-top: 1px;
+    letter-spacing: 0.2px;
+}
+
+/* Custom red color removed so it uses .icon-btn defaults */
+
+.update-panel {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    border-radius: 6px;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    margin-top: -4px; /* Pull it slightly up to the header */
+    margin-bottom: 4px;
+    transition: all 0.3s ease;
+}
+
+.update-panel--hidden {
+    display: none;
+}
+
+.update-panel--error {
+    background: rgba(220, 53, 69, 0.08);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: #ff9fa7;
+}
+
+.update-panel--new {
+    background: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.4);
+    color: #ff9fa7;
+}
+
+.update-panel--ok {
+    background: rgba(145, 198, 188, 0.1);
+    border-color: rgba(145, 198, 188, 0.3);
+    color: var(--accent-blue);
+}
+
+.update-panel-link {
+    background: rgba(220, 53, 69, 0.2);
+    color: #ff9fa7;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.7rem;
+    transition: background 0.2s ease;
+}
+
+.update-panel-link:hover {
+    background: rgba(220, 53, 69, 0.3);
+}
+
+.update-panel-link--github {
+    background: rgba(145, 198, 188, 0.15);
+    color: var(--accent-blue);
+    border: 1px solid rgba(145, 198, 188, 0.3);
+}
+
+.update-panel-link--github:hover {
+    background: rgba(145, 198, 188, 0.25);
+}
+
+.close-panel-btn {
+    background: transparent !important;
+    border: none !important;
+    color: inherit !important;
+    font-size: 1.2rem;
+    padding: 0 0 0 8px;
+    line-height: 1;
+    opacity: 0.6;
+    cursor: pointer;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.close-panel-btn:hover {
+    opacity: 1;
 }
 body.dark footer {
     color: var(--text-muted);

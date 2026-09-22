@@ -9,16 +9,38 @@
 <body class="dark">
     <div class="container">
         <div class="popup-header">
+            <div class="header-left">
+                <button id="checkUpdateBtn" class="icon-btn update-check-btn" title="Check for updates" aria-label="Check for updates">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                </button>
+                <span id="localVersionBadge" class="header-label"></span>
+            </div>
             <h2 class="popup-title">Operation Controller</h2>
-            <button id="viewMetaBtn" class="icon-btn" title="Open Planner" aria-label="Open Planner">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                    aria-hidden="true">
-                    <path d="M14 3h7v7" />
-                    <path d="M10 14L21 3" />
-                    <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
-                </svg>
-            </button>
+            <div class="header-right">
+                <button id="viewMetaBtn" class="icon-btn" title="Open Planner" aria-label="Open Planner">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <path d="M14 3h7v7" />
+                        <path d="M10 14L21 3" />
+                        <path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5" />
+                    </svg>
+                </button>
+                <span class="header-label">Planner</span>
+            </div>
+        </div>
+        <div id="updatePanel" class="update-panel update-panel--hidden">
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1; justify-content: space-between;">
+                <span id="updatePanelText">Checking...</span>
+                <a id="updatePanelLink" href="#" target="_blank" rel="noopener noreferrer" class="update-panel-link" style="display:none;"></a>
+            </div>
+            <button id="closeUpdatePanelBtn" class="close-panel-btn" title="Close" aria-label="Close">&times;</button>
         </div>
         <div class="master-control">
             <label class="switch">

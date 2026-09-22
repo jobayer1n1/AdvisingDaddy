@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "AdvisingDaddy",
-  "version": "1.2.1",
+  "version": "1.2",
   "description": "Automated course selection and alerts based on priority.",
   "browser_specific_settings": {
     "gecko": {
@@ -26,8 +26,7 @@
   "host_permissions": [
     "https://rds3.northsouth.edu/*",
     "https://rds4.northsouth.ac.bd/*",
-    "http://localhost:8000/*",
-    "http://127.0.0.1:8000/*"
+    "https://api.github.com/*"
   ],
   "icons":{
       "16": "images/icon16.png",
@@ -46,9 +45,7 @@
     {
       "matches": [
         "https://rds3.northsouth.edu/students/advising*",
-        "https://rds4.northsouth.ac.bd/offered_courses*",
-        "http://localhost:8000/*",
-        "http://127.0.0.1:8000/*"
+        "https://rds4.northsouth.ac.bd/offered_courses*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle"
@@ -63,9 +60,7 @@
       ],
       "matches": [
         "https://rds3.northsouth.edu/*",
-        "https://rds4.northsouth.ac.bd/*",
-        "http://localhost:8000/*",
-        "http://127.0.0.1:8000/*"
+        "https://rds4.northsouth.ac.bd/*"
       ]
     }
   ]
