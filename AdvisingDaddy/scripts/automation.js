@@ -7,6 +7,12 @@ export const SLIP_ID = "advSlip";
 export const COURSE_TABLE_ID = "courseList";
 export const cseLabPattern = /^CSE\d+L$/;
 
+// Temporary timing logs — set to false once the slow step is found.
+const DEBUG_TIMING = true;
+const lap = (label, t0) => {
+    if (DEBUG_TIMING) console.log(`AdvisingDaddy [timing] ${label}: ${(performance.now() - t0).toFixed(1)}ms`);
+};
+
 function getCourseNameOptions(courseName) {
     return (courseName || "")
         .toUpperCase()
@@ -17,6 +23,12 @@ function getCourseNameOptions(courseName) {
 
 function isCompositeCourseName(courseName) {
     return getCourseNameOptions(courseName).length > 1;
+}
+
+// textContent never forces a layout/reflow; innerText does (and is much
+// slower on large tables). Whitespace is collapsed to mimic innerText.
+function cellText(el) {
+    return el ? el.textContent.replace(/\s+/g, " ").trim() : "";
 }
 
 export function parseSeats(seatText) {
@@ -53,7 +65,7 @@ export function getRegisteredCourses() {
     rows.forEach(row => {
         const tds = row.querySelectorAll("td");
         if (tds.length > 2) {
-            const courseText = tds[1].innerText.trim();
+            const courseText = cellText(tds[1]);
             if (courseText.includes(".")) {
                 registered.add(courseText.toUpperCase());
             }
@@ -62,31 +74,51 @@ export function getRegisteredCourses() {
     return registered;
 }
 
-export function getAvailableCourseMap() {
-    const map = {};
+/* ── ONE pass over the course table ─────────────────────────────
+   The original scanned every row three separate times (available map,
+   section counts, sections-by-course), each with layout-forcing
+   innerText reads. This builds all three in a single loop.          */
+function scanCourseTable() {
+    const available = {};
+    const counts = {};
+    const byCourse = {};
+
     const table = document.getElementById(COURSE_TABLE_ID);
-    if (!table) return map;
+    if (!table) return { available, counts, byCourse };
 
     const rows = table.querySelectorAll("tr");
 
     rows.forEach(row => {
         const tds = row.querySelectorAll("td");
+        if (tds.length < 1) return;
+
+        const fullText = cellText(tds[0]);
+        const idx = fullText.lastIndexOf(".");
+        if (idx === -1) return;
+
+        const courseName = fullText.substring(0, idx).trim().toUpperCase();
+        const section = fullText.substring(idx + 1).trim();
+        const names = getCourseNameOptions(courseName);
+
+        // sections-by-course (original accepted rows with >= 1 td)
+        names.forEach(name => {
+            if (!byCourse[name]) byCourse[name] = [];
+            byCourse[name].push(section);
+        });
+
         if (tds.length < 2) return;
 
-        const fullText = tds[0].innerText.trim();
-        const splitIndex = fullText.lastIndexOf(".");
+        // section counts (original: rows with >= 2 tds)
+        names.forEach(name => {
+            counts[name] = (counts[name] || 0) + 1;
+        });
 
-        if (splitIndex === -1) return;
-
-        const courseName = fullText.substring(0, splitIndex).trim().toUpperCase();
-        const section = fullText.substring(splitIndex + 1).trim();
-
-        const seatData = parseSeats(tds[1].innerText);
-
+        // available seats map (only rows with a parsable "occ(total)")
+        const seatData = parseSeats(cellText(tds[1]));
         if (seatData) {
-            getCourseNameOptions(courseName).forEach(name => {
-                if (!map[name]) map[name] = {};
-                map[name][section] = {
+            names.forEach(name => {
+                if (!available[name]) available[name] = {};
+                available[name][section] = {
                     element: tds[0],
                     occupied: seatData.occupied,
                     total: seatData.total
@@ -94,69 +126,52 @@ export function getAvailableCourseMap() {
             });
         }
     });
-    return map;
-}
-
-export function getCurrentSectionCounts() {
-    const counts = {};
-    const table = document.getElementById(COURSE_TABLE_ID);
-    if (!table) return counts;
-
-    const rows = table.querySelectorAll("tr");
-
-    rows.forEach(row => {
-        const tds = row.querySelectorAll("td");
-        if (tds.length < 2) return;
-
-        const text = tds[0].innerText.trim();
-        const idx = text.lastIndexOf(".");
-        if (idx === -1) return;
-
-        const course = text.substring(0, idx).trim().toUpperCase();
-        getCourseNameOptions(course).forEach(name => {
-            counts[name] = (counts[name] || 0) + 1;
-        });
-    });
-
-    return counts;
-}
-
-export function getCurrentSectionsByCourse() {
-    const byCourse = {};
-    const table = document.getElementById(COURSE_TABLE_ID);
-    if (!table) return byCourse;
-
-    const rows = table.querySelectorAll("tr");
-    rows.forEach(row => {
-        const tds = row.querySelectorAll("td");
-        if (tds.length < 1) return;
-
-        const text = tds[0].innerText.trim();
-        const idx = text.lastIndexOf(".");
-        if (idx === -1) return;
-
-        const course = text.substring(0, idx).trim().toUpperCase();
-        const section = text.substring(idx + 1).trim();
-
-        getCourseNameOptions(course).forEach(name => {
-            if (!byCourse[name]) byCourse[name] = [];
-            byCourse[name].push(section);
-        });
-    });
 
     Object.keys(byCourse).forEach(course => {
         byCourse[course] = [...new Set(byCourse[course])];
     });
 
-    return byCourse;
+    return { available, counts, byCourse };
 }
 
+// Kept as thin wrappers so any other module importing them keeps working.
+export function getAvailableCourseMap() {
+    return scanCourseTable().available;
+}
+
+export function getCurrentSectionCounts() {
+    return scanCourseTable().counts;
+}
+
+export function getCurrentSectionsByCourse() {
+    return scanCourseTable().byCourse;
+}
+
+/* ── re-entrancy guard ──────────────────────────────────────────
+   runAutomation awaits random delays (up to ~2.4s total). If whatever
+   calls it fires again during that window (observer, timer, portal
+   refresh after a click), two runs can click the same section twice
+   and press Save twice. Skip while a run is in flight.              */
+let isRunning = false;
+
 export async function runAutomation() {
+    if (isRunning) return;
+    isRunning = true;
+    try {
+        await runAutomationOnce();
+    } finally {
+        isRunning = false;
+    }
+}
+
+async function runAutomationOnce() {
+    let t = performance.now();
     const data = await ext.storage.local.get("advisingPriorities");
+    lap("storage.get advisingPriorities", t);
     const priorities = data.advisingPriorities || [];
     if (priorities.length === 0) return;
 
-    const registeredSet = new Set(getRegisteredCourses());
+    const registeredSet = getRegisteredCourses();
 
     // Update completedCourses status so popup UI always reflects current registered courses on the slip
     const completedCourses = [];
@@ -168,9 +183,12 @@ export async function runAutomation() {
             completedCourses.push(item.name);
         }
     }
+    t = performance.now();
     await ext.storage.local.set({ completedCourses });
+    lap("storage.set completedCourses", t);
 
     // Load active automations
+    t = performance.now();
     const {
         alertOnNewSection,
         courseSectionCounts = {},
@@ -184,6 +202,7 @@ export async function runAutomation() {
         "autoSave",
         "seatAlert"
     ]);
+    lap("storage.get settings", t);
 
     const isAutoSave = Boolean(autoSave);
     const isSeatAlert = Boolean(seatAlert);
@@ -201,10 +220,17 @@ export async function runAutomation() {
             .filter(name => !isCompositeCourseName(name))
     );
 
+    // Single scan of the course table, shared by everything below.
+    t = performance.now();
+    const {
+        available: availableMap,
+        counts: currentCounts,
+        byCourse: currentSectionsByCourse
+    } = scanCourseTable();
+    lap("scanCourseTable", t);
+
     // NEW SECTION ALERT LOGIC
     if (isNewSectionAlert) {
-        const currentCounts = getCurrentSectionCounts();
-        const currentSectionsByCourse = getCurrentSectionsByCourse();
         const updatedCounts = { ...courseSectionCounts };
         const updatedSnapshots = { ...courseSectionSnapshots };
         const hasBaseline = Object.keys(courseSectionSnapshots || {}).length > 0;
@@ -257,7 +283,6 @@ export async function runAutomation() {
         return;
     }
 
-    const availableMap = getAvailableCourseMap();
     const submitBtn = getSaveButton();
 
     if (isAutoSave) {
