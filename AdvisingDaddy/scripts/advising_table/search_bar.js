@@ -173,6 +173,12 @@ export function addCourseSearchBar() {
                 <div id="advCourseSearchCount"></div>
                 ${portalMode ? inlineClear : ""}
             </div>
+            <div id="advRenderProgressWrap" hidden>
+                <span id="advRenderProgressText">Rendering 0%</span>
+                <div id="advRenderProgressBarTrack">
+                    <div id="advRenderProgressBarFill"></div>
+                </div>
+            </div>
         </div>
         <div id="advAutoFetchPanel" hidden>
             <div class="adv-af-head">
@@ -593,6 +599,7 @@ export function addCourseSearchBar() {
                 document.dispatchEvent(new CustomEvent(LIST_UPDATED_EVENT, { detail: result }));
             } catch (err) {
                 console.error(`AdvisingDaddy: fetch failed — ${err.message}`, err);
+                setRenderProgress(-1);
                 lastUpdate = { kind: "error", at: Date.now(), message: err.message };
                 setStatus("⚠ Fetch failed", "error", err.message, true); // reason on hover; click for the panel
             } finally {
@@ -609,6 +616,44 @@ export function addCourseSearchBar() {
 
         fetchBtn.addEventListener("click", () => { runFetch({ auto: false }); });
     }
+
+    /* ── real-time rendering progress bar ───────────────────── */
+    let renderProgressTimer = null;
+    function setRenderProgress(percent, text = "") {
+        const wrap = searchContainer.querySelector("#advRenderProgressWrap");
+        const fill = searchContainer.querySelector("#advRenderProgressBarFill");
+        const txt = searchContainer.querySelector("#advRenderProgressText");
+        if (!wrap || !fill || !txt) return;
+
+        if (percent == null || percent < 0) {
+            wrap.hidden = true;
+            return;
+        }
+
+        wrap.hidden = false;
+        const clamped = Math.min(100, Math.max(0, percent));
+        fill.style.width = `${clamped}%`;
+        txt.textContent = text || `Rendering ${Math.round(clamped)}%`;
+
+        if (clamped >= 100) {
+            if (renderProgressTimer) clearTimeout(renderProgressTimer);
+            renderProgressTimer = setTimeout(() => {
+                wrap.hidden = true;
+                fill.style.width = "0%";
+            }, 600);
+        } else if (renderProgressTimer) {
+            clearTimeout(renderProgressTimer);
+            renderProgressTimer = null;
+        }
+    }
+
+    const onProgressEvent = (e) => {
+        if (e.detail) {
+            setRenderProgress(e.detail.progress, e.detail.text);
+        }
+    };
+    document.removeEventListener("advisingdaddy:render-progress", onProgressEvent);
+    document.addEventListener("advisingdaddy:render-progress", onProgressEvent);
 
     /* ── auto-fetch settings (gear) ────────────────────────── */
     const autoWrap = searchContainer.querySelector("#advAutoFetchWrap");

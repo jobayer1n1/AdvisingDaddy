@@ -42,3 +42,12 @@ export function dayRank(day) {
     const i = DAY_ORDER.indexOf(d);
     return i === -1 ? DAY_ORDER.length : i;
 }
+
+export function dispatchRenderProgress(progress, text = "") {
+    document.dispatchEvent(
+        new CustomEvent("advisingdaddy:render-progress", {
+            detail: { progress, text },
+        })
+    );
+}
+

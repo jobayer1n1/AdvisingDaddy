@@ -13,13 +13,13 @@ import {
     boundTables,
     viewApi,
 } from "./state.js";
-import { textOf } from "./helpers.js";
+import { textOf, dispatchRenderProgress } from "./helpers.js";
 import { applyAdvisingLayoutStyles } from "./styles.js";
 import { injectSlipFaculty } from "./slip.js";
 import { addCourseSearchBar } from "./search_bar.js";
 
 /* ── metadata injection ───────────────────────────────────── */
-export async function injectSavedCourseMetadata() {
+export async function injectSavedCourseMetadata({ startProgress = 0 } = {}) {
     if (!document.getElementById(COURSE_TABLE_ID) && !document.getElementById("advSlip")) return;
 
     // Check for saved metadata FIRST before touching the portal DOM.
@@ -61,9 +61,17 @@ export async function injectSavedCourseMetadata() {
                 <th style="width: 40px; text-align: center;">Day</th>
                 <th style="width: 155px; text-align: center;">Time</th>
                 <th style="width: 65px; text-align: center;">Room</th>
+                <th style="width: 30px; text-align: center;"></th>
             </tr>
         `;
         table.insertBefore(thead, table.firstChild);
+    } else {
+        const headerTr = thead.querySelector("tr");
+        if (headerTr && headerTr.children.length === 6) {
+            const th = document.createElement("th");
+            th.style.cssText = "width: 30px; text-align: center;";
+            headerTr.appendChild(th);
+        }
     }
 
     // One delegated click handler instead of 4 listeners per row.
@@ -119,45 +127,74 @@ export async function injectSavedCourseMetadata() {
         }
     }
 
-    for (const { row, tds, key, seats } of pending) {
-        // Remove legacy inline width and align attributes that cause unnecessary gap
-        tds[0].removeAttribute("width");
-        tds[1].removeAttribute("width");
-        tds[1].removeAttribute("align");
+    const totalPending = pending.length;
+    if (totalPending > 0) {
+        dispatchRenderProgress(startProgress, `Rendering ${Math.round(startProgress)}%`);
+        const CHUNK_SIZE = 80;
+        for (let i = 0; i < totalPending; i += CHUNK_SIZE) {
+            const chunk = pending.slice(i, i + CHUNK_SIZE);
+            for (const { row, tds, key, seats } of chunk) {
+                // Remove legacy inline width and align attributes that cause unnecessary gap
+                tds[0].removeAttribute("width");
+                tds[1].removeAttribute("width");
+                tds[1].removeAttribute("align");
 
-        // Remove 3rd td (abouticon) if present so table has exactly 6 columns
-        if (tds.length >= 3) tds[2].remove();
+                // Keep 3rd td (abouticon tooltip cell) if present so it can be placed at the rightest column
+                const tooltipTd = tds.length >= 3 ? tds[2] : null;
 
-        const meta = metaMap.get(key);
-        const faculty = (meta && meta.faculty) || "-";
-        const day = (meta && meta.day) || "-";
-        const tf = performance.now();
-        const timeStr = formatDisplayTime(meta && meta.time);
-        fmtMs += performance.now() - tf;
-        const room = (meta && meta.room) || "-";
+                const meta = metaMap.get(key);
+                const faculty = (meta && meta.faculty) || "-";
+                const day = (meta && meta.day) || "-";
+                const tf = performance.now();
+                const timeStr = formatDisplayTime(meta && meta.time);
+                fmtMs += performance.now() - tf;
+                const room = (meta && meta.room) || "-";
 
-        const frag = document.createDocumentFragment();
-        [
-            [faculty, `Faculty: ${faculty}`],
-            [day, `Day: ${day}`],
-            [timeStr, `Time: ${timeStr}`],
-            [room, `Room: ${room}`],
-        ].forEach(([text, title]) => {
-            const cell = document.createElement("td");
-            cell.className = "injected-meta-cell";
-            cell.textContent = text;
-            cell.title = title;
-            frag.appendChild(cell);
-        });
-        row.appendChild(frag);
+                const frag = document.createDocumentFragment();
+                [
+                    [faculty, `Faculty: ${faculty}`],
+                    [day, `Day: ${day}`],
+                    [timeStr, `Time: ${timeStr}`],
+                    [room, `Room: ${room}`],
+                ].forEach(([text, title]) => {
+                    const cell = document.createElement("td");
+                    cell.className = "injected-meta-cell";
+                    cell.textContent = text;
+                    cell.title = title;
+                    frag.appendChild(cell);
+                });
 
-        // stash searchable / sortable values on the row itself
-        row.dataset.course = key;
-        row.dataset.seats = seats;
-        row.dataset.faculty = faculty;
-        row.dataset.day = day;
+                if (tooltipTd) {
+                    tooltipTd.removeAttribute("width");
+                    tooltipTd.removeAttribute("align");
+                    frag.appendChild(tooltipTd);
+                } else {
+                    const cell = document.createElement("td");
+                    frag.appendChild(cell);
+                }
 
-        row.setAttribute("data-injected-meta", "true");
+                row.appendChild(frag);
+
+                // stash searchable / sortable values on the row itself
+                row.dataset.course = key;
+                row.dataset.seats = seats;
+                row.dataset.faculty = faculty;
+                row.dataset.day = day;
+
+                row.setAttribute("data-injected-meta", "true");
+            }
+
+            const currentCount = Math.min(i + CHUNK_SIZE, totalPending);
+            const currentPct = Math.round(startProgress + (currentCount / totalPending) * (100 - startProgress));
+            dispatchRenderProgress(currentPct, `Rendering ${currentPct}%`);
+
+            if (i + CHUNK_SIZE < totalPending) {
+                await new Promise((r) => requestAnimationFrame(r));
+            }
+        }
+    }
+    if (startProgress > 0 || totalPending > 0) {
+        dispatchRenderProgress(100, "Rendering 100%");
     }
 
     // New rows arrived → honour whatever sort/search the user already set.

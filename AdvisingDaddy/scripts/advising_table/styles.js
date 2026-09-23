@@ -74,9 +74,44 @@ export function applyAdvisingLayoutStyles() {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: 12px;
             width: 100%;
-            min-height: 18px;
+            min-height: 20px;
+        }
+        #advRenderProgressWrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 500;
+            color: #57606a;
+            white-space: nowrap;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        #advRenderProgressWrap[hidden] {
+            display: none !important;
+        }
+        #advRenderProgressText {
+            font-size: 11px;
+            color: #57606a;
+            font-variant-numeric: tabular-nums;
+        }
+        #advRenderProgressBarTrack {
+            width: 110px;
+            height: 6px;
+            background: #e1e4e8;
+            border-radius: 999px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+        #advRenderProgressBarFill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #003e7e 0%, #0969da 100%);
+            border-radius: 999px;
+            transition: width 0.15s ease-out;
         }
         #advCourseSearchCount {
             font-size: 11px;
@@ -171,6 +206,13 @@ export function applyAdvisingLayoutStyles() {
         #courseList th:nth-child(6),
         #courseList tbody td:nth-child(6) {
             width: 65px !important;
+            text-align: center !important;
+            padding: 4px 2px !important;
+            white-space: nowrap !important;
+        }
+        #courseList th:nth-child(7),
+        #courseList tbody td:nth-child(7) {
+            width: 30px !important;
             text-align: center !important;
             padding: 4px 2px !important;
             white-space: nowrap !important;

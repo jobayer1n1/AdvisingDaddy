@@ -7,7 +7,7 @@
 //   fetch_updates → metadata → search_bar → fetch_updates
 
 import { COURSE_TABLE_ID, lap } from "./state.js";
-import { textOf } from "./helpers.js";
+import { textOf, dispatchRenderProgress } from "./helpers.js";
 
 // content.js listens for this to re-run automation on the fresh data.
 export const LIST_UPDATED_EVENT = "advisingdaddy:list-updated";
@@ -127,9 +127,12 @@ function rerenderRow(live, fresh) {
 }
 
 export async function fetchCourseUpdates() {
+    dispatchRenderProgress(10, "Fetching updates...");
     let t = performance.now();
     const doc = await fetchCourseListDocument();
     lap("fetch + parse", t);
+
+    dispatchRenderProgress(40, "Diffing rows...");
 
     const freshTable = doc.getElementById(COURSE_TABLE_ID);
     const freshRows = freshTable
@@ -183,6 +186,7 @@ export async function fetchCourseUpdates() {
     lap(`diff (${liveRows.length} live vs ${freshRows.length} fetched)`, t);
 
     /* WRITE — only the rows/cells that actually differ. */
+    dispatchRenderProgress(60, "Patching changes...");
     t = performance.now();
     for (const { live, fresh } of changes) {
         // Any seat or capacity change: redraw the row exactly as the portal's
@@ -212,7 +216,8 @@ export async function fetchCourseUpdates() {
     //   fetch_updates → (dynamic) metadata → search_bar → fetch_updates
     t = performance.now();
     const { injectSavedCourseMetadata } = await import("./metadata.js");
-    await injectSavedCourseMetadata();
+    await injectSavedCourseMetadata({ startProgress: 60 });
+    dispatchRenderProgress(100, "Fetch complete");
 
     // viewApi.refresh() for changed-only (no new rows) is called inside
     // injectSavedCourseMetadata via its own pending-check, so nothing extra needed.

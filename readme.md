@@ -53,7 +53,7 @@
 | **Course Planner Suite** | Standalone offline-capable web dashboard (`advising_daddy.html`) featuring real-time catalog search, sorting, priority ranking, and full bi-directional synchronization with your extension queue. |
 | **Conflict Detection** | Instant detection of **Time Overlaps** (same day & overlapping hours) and **NSU Same-Day Final Exam Clashes** (odd-distance slot parity algorithm). |
 | **Drag-and-Drop Reordering** | Reorder overall course priority vertically; reorder preferred section sequence horizontally with drag-and-drop chips. |
-| **Portal Injection** | Transforms the standard 2-column RDS advising table into a sticky 6-column layout with **Course**, **Seats**, **Faculty**, **Day**, **Time**, and **Room**. |
+| **Portal Injection** | Transforms the standard 3-column RDS advising table into a sticky 7-column layout with **Course**, **Seats**, **Faculty**, **Day**, **Time**, **Room**, and **Info Tooltip**. |
 | **Interactive RDS Table** | Clicking anywhere on an injected metadata cell (Faculty/Day/Time/Room) automatically selects the course section. |
 | **Universal Dual Search** | Multi-token, order-independent search matching course codes, dot sections (`cse331.1`), faculty initials (`muo`), days (`st`, `mw`), and rooms. |
 | **Active Sorting** | Sort both the Planner and live Advising tables by section number, faculty initials, NSU canonical days, or available seats. |
@@ -108,7 +108,7 @@ Download the latest release from the [GitHub Releases](https://github.com/jobaye
 ┌────────────────────────────────┐       ┌────────────────────────────────┐
 │ 4. Live Advising Portal (RDS)  │       │ 3. Operation Controller Popup  │
 │  rds3.northsouth.edu/advising  │       │  - Enable Auto Save / Alerts   │
-│  - 6-column sticky table       │<──────│  - View completed badges (✅) │
+│  - 7-column sticky table       │<──────│  - View completed badges (✅) │
 │  - Dual search & sorting       │       │  - Inline section editor (✏️)  │
 │  - Automated clicks & submit   │       │  - Open Planner launch button  │
 └────────────────────────────────┘       └────────────────────────────────┘
@@ -166,7 +166,7 @@ Open the extension popup to view and manage your automation settings:
 1. Log in to your NSU Student Portal and open the advising page:
    `https://rds3.northsouth.edu/students/advising`
 2. **Visual Enhancements in Action**:
-   - The advising table (`#courseList`) expands with a sticky 6-column header (`Course | Seats | Faculty | Day | Time | Room`).
+   - The advising table (`#courseList`) expands with a sticky 7-column header (`Course | Seats | Faculty | Day | Time | Room | Info`).
    - A real-time search bar and sorting dropdown appear directly above the table.
 3. **Automation Execution**:
    - If **Auto Save** is enabled, AdvisingDaddy inspects your queue from top to bottom.
