@@ -364,8 +364,22 @@ export function addCourseSearchBar() {
         const query = ((inputEl && inputEl.value) || "").trim();
         const tokens = query.toUpperCase().split(/\s+/).filter(Boolean);
 
-        let visibleCount = 0;
+        if (!query) {
+            for (const row of rows) {
+                if (row.hasAttribute("data-search-hidden")) {
+                    row.removeAttribute("data-search-hidden");
+                }
+            }
+            clearBtn.style.display = "none";
+            countDiv.style.display = "none";
+            countDiv.textContent = "";
+            setRenderProgress(-1);
+            return;
+        }
 
+        setRenderProgress(50, `Searching '${query}'...`);
+
+        let visibleCount = 0;
         for (const row of rows) {
             const matches = rowMatches(getRowFields(row), tokens);
             const isHidden = row.hasAttribute("data-search-hidden");
@@ -378,17 +392,13 @@ export function addCourseSearchBar() {
             }
         }
 
-        if (query) {
-            clearBtn.style.display = "block";
-            countDiv.style.display = "block";
-            countDiv.textContent = `${visibleCount} course${
-                visibleCount === 1 ? "" : "s"
-            } found`;
-        } else {
-            clearBtn.style.display = "none";
-            countDiv.style.display = "none";
-            countDiv.textContent = "";
-        }
+        clearBtn.style.display = "block";
+        countDiv.style.display = "block";
+        countDiv.textContent = `${visibleCount} course${
+            visibleCount === 1 ? "" : "s"
+        } found`;
+
+        setRenderProgress(100, `Searching '${query}'... 100%`);
     }
 
     /* ── sorting only: reorders DOM nodes. Called when the dropdown
@@ -483,11 +493,19 @@ export function addCourseSearchBar() {
                 return;
             }
 
-            if (e.type === "input") debouncedFilter();
+            if (e.type === "input") {
+                const queryVal = (target.value || "").trim();
+                if (queryVal) setRenderProgress(5, `Searching '${queryVal}'...`);
+                debouncedFilter();
+            }
         };
         CLAIMED_EVENTS.forEach((t) => window.addEventListener(t, claimHandler, true));
     } else {
-        ownInput.addEventListener("input", debouncedFilter);
+        ownInput.addEventListener("input", () => {
+            const queryVal = (ownInput.value || "").trim();
+            if (queryVal) setRenderProgress(5, `Searching '${queryVal}'...`);
+            debouncedFilter();
+        });
         ownInput.addEventListener("keydown", (e) => {
             if (e.key === "Enter") {
                 e.preventDefault();
