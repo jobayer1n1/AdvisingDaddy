@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const updatePanelText = document.getElementById("updatePanelText")
     const updatePanelLink = document.getElementById("updatePanelLink")
     const closeUpdatePanelBtn = document.getElementById("closeUpdatePanelBtn")
+    const githubBtn = document.getElementById("githubBtn")   // <-- NEW
 
     // Set static local version badge
     const manifest = ext.runtime.getManifest();
@@ -91,10 +92,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (alertStatusToggle) {
         alertStatusToggle.addEventListener('change', () => {
             const isEnabled = alertStatusToggle.checked;
-            ext.storage.local.set({
-                alertOnNewSection: isEnabled
-            });
-
+            ext.storage.local.set({ alertOnNewSection: isEnabled });
             updateAlertStatusLabel(isEnabled);
         });
     }
@@ -102,11 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (autoSaveToggle) {
         autoSaveToggle.addEventListener('change', () => {
             const isEnabled = autoSaveToggle.checked;
-
-            ext.storage.local.set({
-                autoSave: isEnabled
-            });
-
+            ext.storage.local.set({ autoSave: isEnabled });
             updateAutoSaveLabel(isEnabled);
         });
     }
@@ -133,23 +127,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // --- Update Check Logic ---
+    // --- Update Check Logic (raw manifest, no GitHub API) ---
 
-    const GITHUB_RELEASES_API = 'https://api.github.com/repos/jobayer1n1/AdvisingDaddy/releases/latest';
-    const GITHUB_RELEASES_PAGE = 'https://github.com/jobayer1n1/AdvisingDaddy/releases';
+    const RAW_MANIFEST_URL =
+        'https://raw.githubusercontent.com/jobayer1n1/AdvisingDaddy/main/AdvisingDaddy/manifest.json';
+    const GITHUB_RELEASES_PAGE =
+        'https://github.com/jobayer1n1/AdvisingDaddy/releases';
+    const GITHUB_REPO_PAGE =
+        'https://github.com/jobayer1n1/AdvisingDaddy';
 
-    /**
-     * Normalises a version string by stripping a leading 'v' and trimming whitespace.
-     * e.g. "v1.3" -> "1.3", "1.3" -> "1.3"
-     */
     function normaliseVersion(v) {
         return (v || '').replace(/^v/i, '').trim();
     }
 
-    /**
-     * Compares two semver-like version strings.
-     * Returns true if `remote` is strictly newer than `local`.
-     */
     function isNewerVersion(local, remote) {
         const localParts = normaliseVersion(local).split('.').map(Number);
         const remoteParts = normaliseVersion(remote).split('.').map(Number);
@@ -163,45 +153,61 @@ document.addEventListener('DOMContentLoaded', async () => {
         return false;
     }
 
+    function setUpdatePanel({ state, html }) {
+        const stateClass = {
+            checking: 'update-panel',
+            new:      'update-panel update-panel--new',
+            ok:       'update-panel update-panel--ok',
+            error:    'update-panel update-panel--error'
+        }[state] || 'update-panel';
+
+        updatePanel.className = stateClass;
+        updatePanelText.innerHTML = html;
+
+        if (updatePanelLink) {
+            updatePanelLink.style.display = 'none';
+            updatePanelLink.removeAttribute('href');
+            updatePanelLink.textContent = '';
+        }
+    }
+
+    function inlineLink(href, label) {
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer" ` +
+            `style="color:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer;">` +
+            `${label}</a>`;
+    }
+
     async function checkForUpdate() {
-        updatePanel.className = 'update-panel';
-        updatePanelText.textContent = 'Checking...';
-        updatePanelLink.style.display = 'none';
+        setUpdatePanel({ state: 'checking', html: 'Checking for updates...' });
 
         try {
-            const response = await fetch(GITHUB_RELEASES_API, {
-                headers: { 'Accept': 'application/vnd.github+json' }
-            });
+            const response = await fetch(RAW_MANIFEST_URL, { cache: 'no-store' });
 
             if (!response.ok) {
-                throw new Error(`GitHub API returned ${response.status}`);
+                throw new Error(`HTTP ${response.status}`);
             }
 
-            const data = await response.json();
-            const latestTag = data.tag_name || '';
-            const releaseUrl = data.html_url || GITHUB_RELEASES_PAGE;
+            const remoteManifest = await response.json();
+            const latestVersion = remoteManifest.version || '';
+            const currentVersion = normaliseVersion(localVersion);
 
-            if (isNewerVersion(localVersion, latestTag)) {
-                updatePanel.className = 'update-panel update-panel--new';
-                updatePanelText.textContent = 'New Version Found:';
-                updatePanelLink.textContent = normaliseVersion(latestTag);
-                updatePanelLink.href = releaseUrl;
-                updatePanelLink.className = 'update-panel-link';
-                updatePanelLink.style.display = 'inline-block';
+            if (isNewerVersion(currentVersion, latestVersion)) {
+                setUpdatePanel({
+                    state: 'new',
+                    html: `Update available: ${inlineLink(GITHUB_RELEASES_PAGE, `v${normaliseVersion(latestVersion)}`)} ` +
+                          `<span style="opacity:.65">(you have v${currentVersion})</span>`
+                });
             } else {
-                updatePanel.className = 'update-panel update-panel--ok';
-                updatePanelText.textContent = `Up to Date: v${normaliseVersion(localVersion)}`;
-                updatePanelLink.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg> GitHub`;
-                updatePanelLink.href = 'https://github.com/jobayer1n1/AdvisingDaddy';
-                updatePanelLink.className = 'update-panel-link update-panel-link--github';
-                updatePanelLink.style.display = 'inline-flex';
-                updatePanelLink.style.alignItems = 'center';
-                updatePanelLink.style.gap = '4px';
+                setUpdatePanel({
+                    state: 'ok',
+                    html: `Up to date: ${inlineLink(GITHUB_RELEASES_PAGE, `v${currentVersion}`)}`
+                });
             }
         } catch (err) {
-            updatePanel.className = 'update-panel update-panel--error';
-            updatePanelText.textContent = 'Check failed';
-            updatePanelLink.style.display = 'none';
+            setUpdatePanel({
+                state: 'error',
+                html: `Check failed - ${inlineLink(GITHUB_RELEASES_PAGE, 'releases')}`
+            });
             console.error('[AdvisingDaddy] Update check failed:', err);
         }
     }
@@ -209,6 +215,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (checkUpdateBtn) {
         checkUpdateBtn.addEventListener('click', () => {
             checkForUpdate();
+        });
+    }
+
+    // --- GitHub Button ---
+    if (githubBtn) {
+        githubBtn.addEventListener('click', () => {
+            ext.tabs.create({ url: GITHUB_REPO_PAGE });
         });
     }
 
@@ -236,19 +249,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const data = await ext.storage.local.get("advisingPriorities");
         const currentList = data.advisingPriorities || [];
-        
-        // Update existing or add new
+
         const filteredList = currentList.filter(item => item.name !== course);
         filteredList.push(newEntry);
 
         await ext.storage.local.set({ advisingPriorities: filteredList });
-        
+
         courseInput.value = '';
         sectionInput.value = '';
         renderList();
     });
 
-    // Smart Clear: Clears only the courses, keeps your toggles/settings
     clearBtn.addEventListener('click', async () => {
         if (confirm("Are you sure you want to clear your course list?")) {
             await ext.storage.local.set({ advisingPriorities: [], completedCourses: [] });
@@ -339,7 +350,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             priorityList.appendChild(row);
         });
 
-        // Edit / Save listeners
         document.querySelectorAll('.edit-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const targetBtn = e.currentTarget;
@@ -391,7 +401,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
-        // Delete listeners
         document.querySelectorAll('.remove-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const nameToRemove = e.currentTarget.getAttribute('data-name');
@@ -400,18 +409,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const newData = await ext.storage.local.get("advisingPriorities");
                 const current = newData.advisingPriorities || [];
                 const updated = current.filter(i => i.name !== nameToRemove);
-                
-                // Also remove from completed if it was there
+
                 const completedData = await ext.storage.local.get("completedCourses");
                 const updatedCompleted = (completedData.completedCourses || []).filter(n => n !== nameToRemove);
 
-                await ext.storage.local.set({ 
-                    advisingPriorities: updated, 
-                    completedCourses: updatedCompleted 
+                await ext.storage.local.set({
+                    advisingPriorities: updated,
+                    completedCourses: updatedCompleted
                 });
                 renderList();
             });
         });
     }
 });
-
